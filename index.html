@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Navigation Pro - Xiaomi 4 Ultra</title>
+    
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <style>
+        :root {
+            --waze-blue: #33ccff; --waze-green: #15cc74; --waze-text: #333333;
+            --waze-gray: #f2f4f5; --shadow: 0 6px 15px rgba(0,0,0,0.15);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        body { background-color: #e5e3df; height: 100vh; width: 100vw; overflow: hidden; display: flex; color: var(--waze-text); }
+
+        /* --- CARTE --- */
+        #map { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 1; }
+
+        /* --- COUCHE UI --- */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: 10; pointer-events: none;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .interactive { pointer-events: auto; }
+
+        /* --- HAUT : BANDEAU NAVIGATION --- */
+        #nav-header {
+            background-color: var(--waze-green); color: white; margin: 15px auto 0; width: 92%; max-width: 500px;
+            border-radius: 16px; padding: 15px 20px; display: none; align-items: center; gap: 20px;
+            box-shadow: var(--shadow); z-index: 20;
+        }
+        #nav-icon { font-size: 3rem; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2)); }
+        #nav-info { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; }
+        #nav-dist { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+        #nav-street { font-size: 1.2rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* --- HAUT DROITE : MÉTÉO --- */
+        #weather-panel {
+            position: absolute; top: 15px; right: 15px; background: rgba(255, 255, 255, 0.9); padding: 10px; border-radius: 12px;
+            box-shadow: var(--shadow); backdrop-filter: blur(5px); display: flex; flex-direction: column; gap: 5px; font-weight: bold; font-size: 0.9rem;
+        }
+        .w-row { display: flex; justify-content: space-between; gap: 10px; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 3px;}
+        .w-row:last-child { border: none; padding-bottom: 0; }
+        .w-time { color: #888; font-size: 0.8rem; }
+
+        /* --- BAS GAUCHE : COMPTEUR --- */
+        #speed-widget {
+            position: absolute; bottom: 100px; left: 15px; width: 80px; height: 80px; background: white;
+            border-radius: 50%; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            box-shadow: var(--shadow); border: 4px solid var(--waze-blue);
+        }
+        #speed-val { font-size: 2.2rem; font-weight: 900; line-height: 1; color: #000; }
+        .speed-unit { font-size: 0.7rem; font-weight: bold; color: #666; }
+
+        /* --- BAS DROITE : BOUTONS --- */
+        #controls { position: absolute; bottom: 100px; right: 15px; display: flex; flex-direction: column; gap: 15px; }
+        .fab {
+            width: 55px; height: 55px; border-radius: 50%; border: none; background: white;
+            box-shadow: var(--shadow); font-size: 1.5rem; cursor: pointer; display: flex; justify-content: center; align-items: center;
+        }
+        #search-btn { color: #007aff; } #gps-btn.active { color: var(--waze-blue); }
+
+        /* --- BAS CENTRE : STATUT --- */
+        #bottom-panel {
+            background: white; width: 100%; padding: 15px 20px 25px; border-radius: 25px 25px 0 0;
+            box-shadow: 0 -5px 20px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center; z-index: 20;
+        }
+        #nav-stats { display: none; width: 100%; flex-direction: column; gap: 5px; }
+        .nav-main-stats { display: flex; align-items: baseline; gap: 15px; }
+        #nav-eta-min { font-size: 2.2rem; font-weight: 800; color: var(--waze-green); }
+        .nav-sub-stats { font-size: 1.1rem; font-weight: bold; color: #555; }
+        .nav-tech-stats { font-size: 0.9rem; color: #888; display: flex; gap: 15px; font-weight: 600; margin-top: 5px; }
+        #free-stats { display: flex; width: 100%; justify-content: space-around; font-size: 1.1rem; font-weight: bold; color: #555; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; }
+        .stat-val { font-size: 1.5rem; font-weight: 800; color: #222; }
+
+        /* --- RECHERCHE --- */
+        #search-modal {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 450px;
+            background: white; padding: 25px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); z-index: 100; display: none;
+        }
+        #address-input { width: 100%; padding: 15px; font-size: 1.1rem; background: var(--waze-gray); border: none; border-radius: 12px; margin-bottom: 10px; font-weight:bold;}
+        #suggestions { list-style: none; max-height: 200px; overflow-y: auto; }
+        #suggestions li { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 1rem; font-weight:500; display:flex; justify-content: space-between;}
+        #suggestions li:hover { background: #f9f9f9; }
+        
+        /* Sélection Itinéraire */
+        #route-summary { margin-top: 15px; display: none; }
+        #route-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
+        .route-tab { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; background: #e0e0e0; color: #333; }
+        .route-tab.active { background: #007aff; color: white; }
+        #route-details { padding: 15px; background: var(--waze-gray); border-radius: 12px; }
+        .summary-item { display: flex; justify-content: space-between; margin-bottom: 8px; font-weight: 600; color:#444;}
+        
+        #start-nav-btn { width: 100%; padding: 15px; margin-top: 15px; background: #007aff; color: white; border: none; border-radius: 12px; font-weight: 800; font-size: 1.1rem; cursor: pointer; }
+        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 2rem; cursor: pointer; color: #888; line-height: 1;}
+        .nav-arrow-container { width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
+        .nav-arrow { font-size: 2.5rem; color: #007aff; filter: drop-shadow(0 3px 5px rgba(0,0,0,0.4)); transition: transform 0.2s linear; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <div id="ui-layer">
+        
+        <div id="nav-header" class="interactive">
+            <div id="nav-icon">⬆️</div>
+            <div id="nav-info"><div id="nav-dist">-- m</div><div id="nav-street">Calcul en cours...</div></div>
+        </div>
+
+        <div id="weather-panel" class="interactive">
+            <div class="w-row" id="w-h1"><span class="w-time">H+1</span> <span class="w-icon">⏳</span> <span class="w-temp">--°</span></div>
+            <div class="w-row" id="w-h2"><span class="w-time">H+2</span> <span class="w-icon">⏳</span> <span class="w-temp">--°</span></div>
+            <div class="w-row" id="w-h3"><span class="w-time">H+3</span> <span class="w-icon">⏳</span> <span class="w-temp">--°</span></div>
+            <div class="w-row" style="padding-top:3px;"><span class="w-icon">💨</span> <span id="wind-val">-- km/h</span></div>
+        </div>
+
+        <div id="speed-widget" class="interactive">
+            <div id="speed-val">0</div><div class="speed-unit">km/h</div>
+        </div>
+
+        <div id="controls" class="interactive">
+            <button id="search-btn" class="fab" onclick="openSearch()">🔍</button>
+            <button id="gps-btn" class="fab" onclick="toggleTracking()">📍</button>
+        </div>
+
+        <div id="bottom-panel" class="interactive">
+            <div id="free-stats">
+                <div class="stat-item"><span class="stat-val" id="dist-val">0.0</span>km</div>
+                <div class="stat-item"><span class="stat-val" id="elev-plus" style="color: #d9534f;">+0</span>m</div>
+                <div class="stat-item"><span class="stat-val" id="elev-minus" style="color: #5cb85c;">-0</span>m</div>
+            </div>
+            <div id="nav-stats">
+                <div class="nav-main-stats">
+                    <span id="nav-eta-min">-- min</span>
+                    <span class="nav-sub-stats"><span id="nav-dist-rem">--</span> km • <span id="nav-arrival-time">--:--</span></span>
+                </div>
+                <div class="nav-tech-stats">
+                    <span>🔋 <span id="nav-batt">--%</span></span>
+                    <span>⛰️ <span id="nav-elev-stats">+0 / -0m</span></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL RECHERCHE -->
+    <div id="search-modal" class="interactive">
+        <span class="close-modal" onclick="closeSearch()">×</span>
+        <h3 style="margin-bottom: 15px; font-weight: 800;">Où va-t-on ?</h3>
+        <input type="text" id="address-input" placeholder="Rechercher une adresse..." autocomplete="off">
+        <ul id="suggestions"></ul>
+        
+        <div id="route-summary">
+            <div id="route-tabs"></div>
+            <div id="route-details"></div>
+            <button id="start-nav-btn" onclick="startNavigation()">ALLER</button>
+        </div>
+    </div>
+
+    <script>
+        // --- VARIABLES GLOBALES ---
+        let map, userMarker, routeLine, pathLine;
+        let watchId = null, isTracking = false, userCoords = null, currentHeading = 0; 
+        
+        let totalDistanceCovered = 0, lastPos = null;
+        let activeRouteDistance = 0, startNavDistance = 0, tripBatteryPct = 0;
+        let totalDPlus = 0, totalDMinus = 0;
+        let routeSteps = [], currentStepIndex = 0, isNavigating = false;
+        let computedRoutes = [], selectedRouteIndex = 0;
+
+        const BATTERY_CAPACITY_WH = 561.6; 
+        const WEIGHT_TOTAL = 90.0 + 24.5; // 114.5 kg
+        const SPEED_MPS = 25.0 / 3.6; 
+
+        // --- INIT CARTE ---
+        function initMap() {
+            map = L.map('map', { zoomControl: false }).setView([46.2, 2.2], 6);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+            routeLine = L.polyline([], { color: '#8a2be2', weight: 8, opacity: 0.8 }).addTo(map);
+            pathLine = L.polyline([], { color: '#007aff', weight: 5, dashArray: '5,10' }).addTo(map);
+            
+            document.getElementById('address-input').addEventListener('focus', showHistory);
+        }
+
+        // --- MÉTÉO ---
+        async function fetchWeather(lat, lon) {
+            try {
+                const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weather_code,wind_speed_10m&wind_speed_unit=kmh&timezone=auto&forecast_days=2`;
+                const data = await (await fetch(url)).json();
+                const nowIso = new Date(new Date().setMinutes(0,0,0)).toISOString().slice(0, 16);
+                let idx = data.hourly.time.findIndex(t => t.startsWith(nowIso));
+                if(idx === -1) idx = 0;
+
+                const getEmoji = (c) => c<=1?'☀️':c<=3?'⛅':c<=48?'🌫️':c<=67?'🌧️':c<=77?'❄️':c<=82?'🌦️':'⛈️';
+                for(let i=1; i<=3; i++) {
+                    document.getElementById(`w-h${i}`).querySelector('.w-icon').innerText = getEmoji(data.hourly.weather_code[idx+i]);
+                    document.getElementById(`w-h${i}`).querySelector('.w-temp').innerText = `${Math.round(data.hourly.temperature_2m[idx+i])}°C`;
+                }
+                document.getElementById('wind-val').innerText = `${Math.round(data.hourly.wind_speed_10m[idx])} km/h`;
+            } catch(e) {}
+        }
+
+        // --- HISTORIQUE & FAVORIS ---
+        let searchHistory = JSON.parse(localStorage.getItem('scooterHist') || '[]');
+
+        function saveToHistory(place) {
+            const name = place.display_name || place.name;
+            const exists = searchHistory.findIndex(p => p.name === name);
+            if(exists !== -1) {
+                const p = searchHistory.splice(exists, 1)[0];
+                searchHistory.unshift(p); // Remonte en haut
+            } else {
+                searchHistory.unshift({name: name, lat: place.lat, lon: place.lon, fav: false});
+            }
+            if(searchHistory.length > 5) searchHistory.pop(); // Garde les 5 derniers
+            localStorage.setItem('scooterHist', JSON.stringify(searchHistory));
+        }
+
+        function toggleFav(e, index) {
+            e.stopPropagation();
+            searchHistory[index].fav = !searchHistory[index].fav;
+            localStorage.setItem('scooterHist', JSON.stringify(searchHistory));
+            showHistory();
+        }
+
+        function showHistory() {
+            const suggestionsBox = document.getElementById('suggestions');
+            if(document.getElementById('address-input').value.length > 0) return;
+            suggestionsBox.innerHTML = '';
+            
+            if(searchHistory.length === 0) {
+                suggestionsBox.innerHTML = '<li style="color:#999; justify-content:center;">Aucun historique</li>';
+                return;
+            }
+            
+            searchHistory.forEach((h, i) => {
+                const li = document.createElement('li');
+                li.innerHTML = `<span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:85%;">${h.name}</span> 
+                                <span onclick="toggleFav(event, ${i})" style="font-size:1.3rem;">${h.fav ? '⭐' : '☆'}</span>`;
+                li.onclick = () => selectAddress({display_name: h.name, lat: h.lat, lon: h.lon});
+                suggestionsBox.appendChild(li);
+            });
+        }
+
+        // --- RECHERCHE OSRM ---
+        let searchTimeout;
+        document.getElementById('address-input').addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            if (e.target.value.length === 0) return showHistory();
+            if (e.target.value.length < 3) return document.getElementById('suggestions').innerHTML = '';
+            
+            searchTimeout = setTimeout(() => {
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(e.target.value)}&countrycodes=fr&limit=5`)
+                .then(r => r.json()).then(data => {
+                    const suggestionsBox = document.getElementById('suggestions');
+                    suggestionsBox.innerHTML = '';
+                    data.forEach(place => {
+                        const li = document.createElement('li'); li.innerText = place.display_name;
+                        li.onclick = () => selectAddress(place); suggestionsBox.appendChild(li);
+                    });
+                });
+            }, 500);
+        });
+
+        function openSearch() {
+            if(!userCoords) return alert("Activez d'abord le GPS (📍) !");
+            document.getElementById('search-modal').style.display = 'block';
+            document.getElementById('route-summary').style.display = 'none';
+            // Vider la barre et afficher l'historique direct
+            document.getElementById('address-input').value = '';
+            showHistory();
+        }
+        function closeSearch() { document.getElementById('search-modal').style.display = 'none'; }
+
+        // --- CALCUL DES DEUX ITINÉRAIRES (VÉLO vs PIÉTON) ---
+        async function selectAddress(place) {
+            document.getElementById('address-input').value = place.display_name || place.name; 
+            document.getElementById('suggestions').innerHTML = '<li style="justify-content:center; color:#007aff;">Calcul en cours...</li>';
+            saveToHistory(place);
+
+            // Requêtes parallèles : Rapide (Bike) et Raccourci (Foot)
+            const urlBike = `https://routing.openstreetmap.de/routed-bike/route/v1/driving/${userCoords.lon},${userCoords.lat};${place.lon},${place.lat}?overview=full&geometries=geojson&steps=true`;
+            const urlFoot = `https://routing.openstreetmap.de/routed-foot/route/v1/driving/${userCoords.lon},${userCoords.lat};${place.lon},${place.lat}?overview=full&geometries=geojson&steps=true`;
+            
+            try {
+                const [resBike, resFoot] = await Promise.all([fetch(urlBike), fetch(urlFoot)]);
+                const dataBike = await resBike.json();
+                const dataFoot = await resFoot.json();
+                
+                computedRoutes = [];
+                if (dataBike.code === "Ok") computedRoutes.push(await processRouteData(dataBike.routes[0], "🚲 Rapide"));
+                // On n'ajoute le piéton que si la distance est significativement différente pour éviter les doublons exacts
+                if (dataFoot.code === "Ok") {
+                    const footRoute = await processRouteData(dataFoot.routes[0], "🚶‍♂️ Raccourci Piéton");
+                    if(computedRoutes.length === 0 || Math.abs(footRoute.distance - computedRoutes[0].distance) > 0.1) {
+                        computedRoutes.push(footRoute);
+                    }
+                }
+
+                if (computedRoutes.length === 0) return alert("Itinéraire introuvable.");
+
+                document.getElementById('suggestions').innerHTML = '';
+                document.getElementById('route-summary').style.display = 'block';
+                renderRouteTabs();
+                previewRoute(0); // Affiche le premier par défaut
+
+            } catch(e) { alert("Erreur serveur."); console.error(e); }
+        }
+
+        async function processRouteData(route, name) {
+            const coords = route.geometry.coordinates;
+            const steps = route.legs[0].steps; 
+            
+            // Échantillonnage pour la topo (Open-Meteo)
+            const maxSamples = 50;
+            const stepIdx = Math.max(1, Math.floor(coords.length / maxSamples));
+            let lats = [], lons = [], sampledCoords = [];
+            for (let i = 0; i < coords.length; i += stepIdx) {
+                lats.push(coords[i][1].toFixed(5)); lons.push(coords[i][0].toFixed(5));
+                sampledCoords.push(coords[i]);
+            }
+
+            const elevUrl = `https://api.open-meteo.com/v1/elevation?latitude=${lats.join(',')}&longitude=${lons.join(',')}`;
+            let whTotal = 0, dPlus = 0, dMinus = 0, distSampledKm = 0;
+            const crr = 0.015, rho = 1.2, cdA = 0.45, g = 9.81;
+            
+            try {
+                const elevData = await (await fetch(elevUrl)).json();
+                for (let i = 0; i < sampledCoords.length - 1; i++) {
+                    const segmentDist = map.distance([sampledCoords[i][1], sampledCoords[i][0]], [sampledCoords[i+1][1], sampledCoords[i+1][0]]);
+                    if (segmentDist === 0) continue;
+                    distSampledKm += (segmentDist / 1000);
+                    
+                    const elevDiff = elevData.elevation ? (elevData.elevation[i+1] - elevData.elevation[i]) : 0;
+                    if(elevDiff > 0) dPlus += elevDiff; else dMinus += Math.abs(elevDiff);
+
+                    const slope = elevDiff / segmentDist;
+                    let p_mech = (crr * WEIGHT_TOTAL * g + 0.5 * rho * cdA * Math.pow(SPEED_MPS, 2) + WEIGHT_TOTAL * g * slope) * SPEED_MPS;
+                    if(p_mech < 0) p_mech = 0; 
+                    whTotal += ((p_mech / 0.75) * (segmentDist / SPEED_MPS)) / 3600;
+                }
+            } catch(e) {} // Fallback silencieux si l'API élévation coupe
+
+            const realDistKm = route.distance / 1000;
+            const scale = distSampledKm > 0 ? (realDistKm / distSampledKm) : 1;
+            
+            return {
+                name: name,
+                distance: realDistKm,
+                dPlus: dPlus * scale,
+                dMinus: dMinus * scale,
+                battery: ((whTotal * scale) / BATTERY_CAPACITY_WH) * 100,
+                time: (realDistKm / 25) * 60, // Toujours calculé pour la vitesse Trottinette
+                coords: coords,
+                steps: steps
+            };
+        }
+
+        // --- AFFICHAGE ET SÉLECTION DES ROUTES ---
+        function renderRouteTabs() {
+            const tabsContainer = document.getElementById('route-tabs');
+            tabsContainer.innerHTML = '';
+            computedRoutes.forEach((rt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `route-tab ${idx === 0 ? 'active' : ''}`;
+                btn.innerText = rt.name;
+                btn.onclick = () => previewRoute(idx);
+                tabsContainer.appendChild(btn);
+            });
+        }
+
+        function previewRoute(index) {
+            selectedRouteIndex = index;
+            const rt = computedRoutes[index];
+            
+            // Maj boutons
+            document.querySelectorAll('.route-tab').forEach((b, i) => b.className = `route-tab ${i === index ? 'active' : ''}`);
+            
+            // Maj Détails
+            document.getElementById('route-details').innerHTML = `
+                <div class="summary-item"><span>Distance:</span> <span>${rt.distance.toFixed(1)} km</span></div>
+                <div class="summary-item"><span>Dénivelé:</span> <span>+${Math.round(rt.dPlus)}m / -${Math.round(rt.dMinus)}m</span></div>
+                <div class="summary-item"><span>Temps (25km/h):</span> <span>${Math.round(rt.time)} min</span></div>
+                <div class="summary-item" style="color:#007aff; border-top:1px solid #ddd; padding-top:8px; margin-top:5px;">
+                    <span>🔋 Conso. Batterie:</span> <span>${rt.battery.toFixed(1)} %</span>
+                </div>
+            `;
+            
+            // Maj Ligne de carte
+            routeLine.setLatLngs(rt.coords.map(c => [c[1], c[0]]));
+            map.fitBounds(routeLine.getBounds(), {padding: [40,40]});
+        }
+
+        // --- DÉMARRAGE DU GUIDAGE ---
+        function startNavigation() {
+            closeSearch();
+            isNavigating = true;
+            currentStepIndex = 0;
+            startNavDistance = totalDistanceCovered; 
+            
+            // Variables actives basées sur le choix
+            activeRouteDistance = computedRoutes[selectedRouteIndex].distance;
+            tripBatteryPct = computedRoutes[selectedRouteIndex].battery;
+            routeSteps = computedRoutes[selectedRouteIndex].steps;
+            
+            // Switch UI
+            document.getElementById('free-stats').style.display = 'none';
+            document.getElementById('nav-stats').style.display = 'flex';
+            document.getElementById('nav-header').style.display = 'flex';
+            document.getElementById('nav-batt').innerText = `${tripBatteryPct.toFixed(1)}%`;
+            
+            map.setZoom(18);
+            if(userCoords) updateNavigationHUD(userCoords);
+        }
+
+        // --- TRADUCTION INSTRUCTIONS ---
+        function getTurnEmoji(modifier, type) {
+            if (type === 'arrive') return '🏁';
+            if (type === 'roundabout') return '🔄';
+            switch (modifier) {
+                case 'uturn': return '↩️'; case 'sharp right': return '⤵️'; case 'right': return '➡️';
+                case 'slight right': return '↗️'; case 'straight': return '⬆️'; case 'slight left': return '↖️';
+                case 'left': return '⬅️'; case 'sharp left': return '⤴️'; default: return '⬆️';
+            }
+        }
+        function getManeuverText(step) {
+            if (step.maneuver.type === 'arrive') return 'Arrivée à destination';
+            if (step.maneuver.type === 'roundabout') return 'Prendre le rond-point';
+            return step.name || 'Continuer tout droit';
+        }
+
+        function updateNavigationHUD(pos) {
+            if(!activeRouteDistance) return;
+            const currentPos = [pos.lat, pos.lon];
+
+            let remainingKm = activeRouteDistance - (totalDistanceCovered - startNavDistance);
+            if(remainingKm < 0) remainingKm = 0;
+            
+            const minsLeft = Math.round((remainingKm / 25) * 60);
+            document.getElementById('nav-dist-rem').innerText = remainingKm.toFixed(1);
+            document.getElementById('nav-eta-min').innerText = `${minsLeft} min`;
+            
+            const arrivalDate = new Date(Date.now() + minsLeft * 60000);
+            document.getElementById('nav-arrival-time').innerText = arrivalDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            
+            if (routeSteps.length > 0 && currentStepIndex < routeSteps.length) {
+                let nextStep = routeSteps[currentStepIndex];
+                let stepCoords = [nextStep.maneuver.location[1], nextStep.maneuver.location[0]];
+                let distToTurn = map.distance(currentPos, stepCoords);
+                
+                if (distToTurn < 20) {
+                    currentStepIndex++;
+                    if (currentStepIndex < routeSteps.length) {
+                        nextStep = routeSteps[currentStepIndex];
+                        stepCoords = [nextStep.maneuver.location[1], nextStep.maneuver.location[0]];
+                        distToTurn = map.distance(currentPos, stepCoords);
+                    }
+                }
+
+                if (nextStep) {
+                    document.getElementById('nav-dist').innerText = distToTurn > 1000 ? (distToTurn/1000).toFixed(1) + ' km' : Math.round(distToTurn) + ' m';
+                    document.getElementById('nav-street').innerText = getManeuverText(nextStep);
+                    document.getElementById('nav-icon').innerText = getTurnEmoji(nextStep.maneuver.modifier, nextStep.maneuver.type);
+                }
+            }
+
+            if(remainingKm === 0 && (totalDistanceCovered - startNavDistance) > 0.1) {
+                document.getElementById('nav-street').innerText = "DESTINATION ATTEINTE";
+                document.getElementById('nav-icon').innerText = "🏁";
+            }
+        }
+
+        // --- GPS & LISSAGE DÉNIVELÉ ---
+        function startTracking() {
+            if (!navigator.geolocation) return;
+            document.getElementById('gps-btn').classList.add('active');
+            isTracking = true;
+
+            watchId = navigator.geolocation.watchPosition((pos) => {
+                const lat = pos.coords.latitude; const lon = pos.coords.longitude;
+                const alt = pos.coords.altitude; // Peut être null
+                userCoords = { lat, lon, alt };
+
+                let speed = pos.coords.speed;
+                document.getElementById('speed-val').innerText = (speed && speed > 0.5) ? Math.round(speed * 3.6) : 0;
+                if(pos.coords.heading !== null && speed > 0.5) currentHeading = pos.coords.heading; 
+
+                const currentPos = [lat, lon];
+                
+                if (!userMarker) {
+                    userMarker = L.marker(currentPos, {
+                        icon: L.divIcon({
+                            html: `<div class="nav-arrow-container"><div class="nav-arrow" style="transform: rotate(${currentHeading - 90}deg);">➤</div></div>`,
+                            className: '', iconSize: [45, 45], iconAnchor: [22, 22]
+                        })
+                    }).addTo(map);
+                    map.setView(currentPos, 16);
+                    fetchWeather(lat, lon); 
+                } else {
+                    userMarker.setLatLng(currentPos);
+                    userMarker.getElement().querySelector('.nav-arrow').style.transform = `rotate(${currentHeading - 90}deg)`;
+                    if(isNavigating) map.panTo(currentPos);
+                }
+
+                if (lastPos) {
+                    const d = map.distance([lastPos.lat, lastPos.lon], currentPos) / 1000;
+                    if (d > 0.002) {
+                        totalDistanceCovered += d;
+                        document.getElementById('dist-val').innerText = totalDistanceCovered.toFixed(1);
+                        pathLine.addLatLng(currentPos);
+                        
+                        // Lissage Topographique (Évite les sauts incessants du GPS)
+                        if(lastPos.alt !== null && alt !== null) {
+                            const diffAlt = alt - lastPos.alt;
+                            // On n'enregistre que si la pente fait plus de 2 mètres d'écart (filtre de bruit)
+                            if (Math.abs(diffAlt) > 2) {
+                                if(diffAlt > 0) totalDPlus += diffAlt;
+                                else totalDMinus += Math.abs(diffAlt);
+                                
+                                document.getElementById('elev-plus').innerText = `+${Math.round(totalDPlus)}`;
+                                document.getElementById('elev-minus').innerText = `-${Math.round(totalDMinus)}`;
+                                document.getElementById('nav-elev-stats').innerText = `+${Math.round(totalDPlus)} / -${Math.round(totalDMinus)}m`;
+                                
+                                lastPos.alt = alt; // On met à jour l'altitude de référence
+                            }
+                        }
+                        if(isNavigating) updateNavigationHUD(userCoords);
+                    }
+                }
+                
+                // Si lastPos est vide, on l'initialise
+                if(!lastPos) lastPos = {lat: lat, lon: lon, alt: alt};
+                else { lastPos.lat = lat; lastPos.lon = lon; } // Garde l'altitude lissée en mémoire
+                
+            }, null, { enableHighAccuracy: true });
+        }
+
+        function toggleTracking() {
+            if (!isTracking) startTracking();
+            else {
+                navigator.geolocation.clearWatch(watchId);
+                document.getElementById('gps-btn').classList.remove('active');
+                isTracking = false;
+            }
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+</html>
