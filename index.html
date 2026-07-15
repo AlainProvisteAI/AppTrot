@@ -86,26 +86,34 @@
         #search-btn { color: var(--accent); }
         #gps-btn { color: #555; } #gps-btn.active { color: var(--green); }
 
-        /* Modal Recherche */
+        /* --- MODAL RECHERCHE COMPACT ET CENTRÉ --- */
         #search-modal {
-            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
-            width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; display: none; max-height: 75vh; overflow-y: auto;
-            cursor: grab;
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 92%; max-width: 450px; background: white; padding: 15px; border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; display: none; max-height: 95vh; overflow-y: auto;
+            cursor: grab; display: flex; flex-direction: column;
         }
-        input { width: 100%; padding: 14px; font-size: 1rem; background: #f2f4f5; border: 1px solid #ddd; border-radius: 12px; font-weight: bold; margin-bottom: 10px; }
-        #suggestions { list-style: none; margin-bottom: 10px; }
-        #suggestions li { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: 500; display: flex; justify-content: space-between; }
+        #search-modal h3 { margin-bottom: 10px; font-size: 1.2rem; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 5px; }
+        input { width: 100%; padding: 12px; font-size: 1rem; background: #f2f4f5; border: 1px solid #ddd; border-radius: 12px; font-weight: bold; margin-bottom: 5px; }
         
-        #route-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-        .route-tab { flex: 1; padding: 12px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; background: #eee; color: #555; }
+        #suggestions { list-style: none; margin-bottom: 5px; }
+        #suggestions li { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: 500; display: flex; justify-content: space-between; }
+        
+        #route-summary { display: flex; flex-direction: column; }
+        #route-tabs { display: flex; gap: 10px; margin-bottom: 8px; }
+        .route-tab { flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; background: #eee; color: #555; }
         .route-tab.active { background: var(--accent); color: white; }
         
-        #route-details { background: #f2f4f5; padding: 15px; border-radius: 12px; font-size: 0.95rem; font-weight: bold; }
-        .summary-item { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        /* Grille Compacte pour les détails */
+        #route-details { 
+            background: #f2f4f5; padding: 10px 15px; border-radius: 12px; font-size: 0.95rem; font-weight: bold; 
+            display: grid; grid-template-columns: 1fr 1fr; gap: 5px 15px; 
+        }
+        .summary-item { display: flex; justify-content: space-between; margin-bottom: 0; }
         
-        #start-nav-btn { width: 100%; padding: 15px; margin-top: 15px; background: var(--green); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 1.1rem; cursor: pointer; }
-        .close-modal { position: absolute; top: 15px; right: 20px; font-size: 1.8rem; cursor: pointer; color: #888; }
+        #start-nav-btn { width: 100%; padding: 12px; margin-top: 10px; background: var(--green); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 1.1rem; cursor: pointer; }
+        .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.8rem; cursor: pointer; color: #888; }
         
         .marker-arrow svg { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); }
     </style>
@@ -115,12 +123,12 @@
     <div id="map-wrapper"><div id="map"></div></div>
 
     <div id="ui-layer">
+        
         <div id="nav-header" class="interactive">
             <div id="nav-icon">⬆️</div>
             <div><div id="nav-dist">-- m</div><div id="nav-street">Calcul...</div></div>
         </div>
 
-        <!-- WIDGETS DRAGGABLES -->
         <div id="stats-bubble" class="hud-bubble stats-sz-1 interactive" onclick="resizeStats.call(this)">
             <div>Dist: <span id="dist-val" class="stat-hl">0.0</span> <span id="dist-total" class="stat-total"></span></div>
             <div>D+: <span id="dplus-val" class="stat-hl stat-dplus">0</span> <span id="dplus-total" class="stat-total"></span></div>
@@ -147,11 +155,13 @@
 
         <!-- BARRE DU BAS -->
         <div id="bottom-bar">
+            <!-- Gauche -->
             <div class="btn-group">
                 <button class="fab" onclick="toggleFullScreen()" title="Plein Écran">🔲</button>
                 <button class="fab" onclick="setWeight()" title="Régler le poids">⚖️</button>
                 <button class="fab" onclick="toggleSatellite()" title="Vue Satellite">🗺️</button>
             </div>
+            <!-- Droite -->
             <div class="btn-group">
                 <button id="gps-btn" class="fab" onclick="toggleTracking()">📍</button>
                 <button id="search-btn" class="fab" onclick="openSearch()">🔍</button>
@@ -162,7 +172,7 @@
     <!-- MODAL RECHERCHE -->
     <div id="search-modal" class="interactive">
         <span class="close-modal" onclick="closeSearch()">×</span>
-        <h3 style="margin-bottom: 15px; pointer-events:none;">Nouvelle Destination</h3>
+        <h3 style="pointer-events:none;">Nouvelle Destination</h3>
         <input type="text" id="address-input" placeholder="Où va-t-on ?" autocomplete="off">
         <ul id="suggestions"></ul>
         <div id="route-summary" style="display:none;">
@@ -183,7 +193,7 @@
         
         let totalDistanceCovered = 0, totalDPlus = 0, totalDMinus = 0, lastPos = null;
         let startNavDistance = 0, startNavDPlus = 0, startNavDMinus = 0;
-        let totalWhConsumed = 0, startNavWh = 0; // Ajout compteurs batterie réels
+        let totalWhConsumed = 0, startNavWh = 0; 
         
         let traversedPath = []; 
         const BATTERY_CAPACITY_WH = 561.6, SPEED_MPS = 25.0 / 3.6; 
@@ -198,21 +208,21 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // --- GESTION DU DRAG & DROP DES WIDGETS ---
+        // --- DRAG & DROP SÉCURISÉ (Bloqué sur les zones de scroll) ---
         function makeDraggable(elmnt) {
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             let dragging = false;
             elmnt.onmousedown = dragMouseDown; elmnt.ontouchstart = dragMouseDown;
 
             function dragMouseDown(e) {
-                if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'LI') return;
+                // Ignore le drag si on clique sur un input, bouton, ou zone de détails/suggestions
+                if(['INPUT', 'BUTTON', 'LI'].includes(e.target.tagName) || e.target.closest('#route-details') || e.target.closest('#suggestions')) return;
                 e = e || window.event;
                 if(e.type !== "touchstart") e.preventDefault();
                 
                 const rect = elmnt.getBoundingClientRect();
                 elmnt.style.transform = 'none';
-                elmnt.style.left = rect.left + 'px';
-                elmnt.style.top = rect.top + 'px';
+                elmnt.style.left = rect.left + 'px'; elmnt.style.top = rect.top + 'px';
                 elmnt.style.bottom = 'auto'; elmnt.style.right = 'auto';
 
                 pos3 = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
@@ -296,10 +306,10 @@
                 let idx = data.hourly.time.findIndex(t => t.startsWith(currentIso));
                 if(idx === -1) idx = 0;
 
-                const getEmoji = (c) => c<=1?'☀️':c<=3?'⛅':c<=48?'🌫️':c<=67?'🌧️':c<=77?'❄️':c<=82?'🌦️':'⛈️';
+                const getEmoji = (c) => c<=1?'<span class="w-icon">☀️</span>':c<=3?'<span class="w-icon">⛅</span>':c<=48?'<span class="w-icon">🌫️</span>':c<=67?'<span class="w-icon">🌧️</span>':c<=77?'<span class="w-icon">❄️</span>':c<=82?'<span class="w-icon">🌦️</span>':'<span class="w-icon">⛈️</span>';
                 for(let i=0; i<=2; i++) {
                     const label = i===0 ? 'H' : `H+${i}`;
-                    document.getElementById(`w-h${i}`).innerHTML = `${label}: <span class="w-icon">${getEmoji(data.hourly.weather_code[idx+i])}</span> ${Math.round(data.hourly.temperature_2m[idx+i])}°`;
+                    document.getElementById(`w-h${i}`).innerHTML = `${label}: ${getEmoji(data.hourly.weather_code[idx+i])} ${Math.round(data.hourly.temperature_2m[idx+i])}°`;
                 }
                 document.getElementById('wind-val').innerText = Math.round(data.hourly.wind_speed_10m[idx]);
             } catch(e) {}
@@ -347,7 +357,7 @@
 
         function openSearch() {
             if(!userCoords) return alert("Attendez le signal GPS !");
-            document.getElementById('search-modal').style.display = 'block';
+            document.getElementById('search-modal').style.display = 'flex'; // Change to Flex
             document.getElementById('route-summary').style.display = 'none';
             document.getElementById('address-input').value = ''; showHistory();
         }
@@ -401,7 +411,7 @@
 
             if(routes.length === 0) { document.getElementById('suggestions').innerHTML = '<li>Route introuvable.</li>'; return; }
 
-            document.getElementById('suggestions').innerHTML = ''; document.getElementById('route-summary').style.display = 'block';
+            document.getElementById('suggestions').innerHTML = ''; document.getElementById('route-summary').style.display = 'flex';
             renderRouteTabs(); previewRoute(0);
         }
 
@@ -417,11 +427,15 @@
             document.querySelectorAll('.route-tab').forEach((b, i) => b.className = `route-tab ${i===index?'active':''}`);
             activeRoute = routes[index];
             
+            // Grille pour compacter l'affichage
             document.getElementById('route-details').innerHTML = `
                 <div class="summary-item"><span>Dist:</span> <span>${activeRoute.dist.toFixed(1)} km</span></div>
-                <div class="summary-item"><span>Dénivelé:</span> <span>+${Math.round(activeRoute.dPlus)} / -${Math.round(activeRoute.dMinus)}m</span></div>
-                <div class="summary-item"><span>Temps (25km/h):</span> <span>${Math.round((activeRoute.dist/25)*60)} min</span></div>
-                <div class="summary-item" style="color:var(--accent); border-top:1px solid #ddd; padding-top:5px; margin-top:5px;"><span>🔋 Batterie estimée:</span> <span>${activeRoute.batt.toFixed(1)} %</span></div>
+                <div class="summary-item"><span>Temps:</span> <span>${Math.round((activeRoute.dist/23)*60)} min</span></div>
+                <div class="summary-item"><span>D+:</span> <span style="color:#d9534f">+${Math.round(activeRoute.dPlus)}m</span></div>
+                <div class="summary-item"><span>D-:</span> <span style="color:var(--green)">-${Math.round(activeRoute.dMinus)}m</span></div>
+                <div class="summary-item" style="grid-column: 1 / -1; color:var(--accent); border-top:1px solid #ddd; padding-top:5px; margin-top:2px;">
+                    <span>🔋 Batterie estimée:</span> <span>${activeRoute.batt.toFixed(1)} %</span>
+                </div>
             `;
             
             if(map.getSource('route')) map.getSource('route').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: activeRoute.coords } });
@@ -435,7 +449,7 @@
             isNavigating = true; currentStepIndex = 0;
             
             startNavDistance = totalDistanceCovered; startNavDPlus = totalDPlus; startNavDMinus = totalDMinus;
-            startNavWh = totalWhConsumed; // Initialise la conso du trajet
+            startNavWh = totalWhConsumed; 
 
             document.getElementById('dist-total').innerText = `/ ${activeRoute.dist.toFixed(1)} km`;
             document.getElementById('dplus-total').innerText = `/ ${Math.round(activeRoute.dPlus)} m`;
@@ -452,12 +466,11 @@
             document.getElementById('eta-widget').style.display = 'flex';
             
             if(userCoords) {
-                map.flyTo({ center: [userCoords.lon, userCoords.lat], bearing: currentHeading, pitch: 60, zoom: 17.8, duration: 1500 });
+                map.flyTo({ center: [userCoords.lon, userCoords.lat], bearing: currentHeading, pitch: 60, zoom: 17.5, duration: 1500 });
                 updateNavigationHUD(userCoords);
             }
         }
 
-        // --- RECALCUL AUTO ---
         async function recalculateRoute(pos) {
             if (isRecalculating) return;
             isRecalculating = true;
@@ -557,6 +570,7 @@
 
                 let speed = pos.coords.speed;
                 document.getElementById('speed-val').innerText = (speed && speed > 0.5) ? Math.round(speed * 3.6) : 0;
+                
                 if(pos.coords.heading !== null && speed > 0.8) currentHeading = pos.coords.heading; 
 
                 if (!userMarker) {
@@ -566,7 +580,7 @@
                     userMarker = new maplibregl.Marker({element: el, rotationAlignment: 'map', pitchAlignment: 'map'})
                         .setLngLat([lon, lat]).addTo(map);
                     
-                    map.flyTo({ center: [lon, lat], pitch: 60, zoom: 17.8, duration: 1500 }); 
+                    map.flyTo({ center: [lon, lat], pitch: 60, zoom: 17.5, duration: 1500 }); 
                     fetchWeather(lat, lon); requestWakeLock();
                 } else {
                     userMarker.setLngLat([lon, lat]);
@@ -574,12 +588,11 @@
                 }
 
                 if(isNavigating) {
-                    map.easeTo({ center: [lon, lat], bearing: currentHeading, pitch: 60, zoom: 17.8, duration: 1000 });
+                    map.easeTo({ center: [lon, lat], bearing: currentHeading, pitch: 60, zoom: 17.5, duration: 1000 });
                 } else if(userMarker) {
-                    map.easeTo({ center: [lon, lat], bearing: currentHeading, pitch: 60, zoom: 17.8, duration: 1000 }); 
+                    map.easeTo({ center: [lon, lat], bearing: currentHeading, pitch: 60, zoom: 17.5, duration: 1000 }); 
                 }
 
-                // TRACÉ ET LISSAGE PHYSIQUE
                 if (lastPos) {
                     const d = calcDist(lastPos, userCoords) / 1000;
                     if (d > 0.002) {
@@ -598,12 +611,10 @@
                             }
                         }
 
-                        // Calcul Dynamique Batterie (Temps Réel)
                         let p = (0.015*getTotalWeight()*9.81 + 0.5*1.2*0.45*Math.pow(SPEED_MPS,2) + getTotalWeight()*9.81*currentSlope) * SPEED_MPS;
                         if(p < 0) p = 0;
                         totalWhConsumed += ((p/0.75)*(d/SPEED_MPS))/3600;
 
-                        // Affichages Relatifs ou Globaux
                         let displayDist = isNavigating ? (totalDistanceCovered - startNavDistance) : totalDistanceCovered;
                         let displayDPlus = isNavigating ? (totalDPlus - startNavDPlus) : totalDPlus;
                         let displayDMinus = isNavigating ? (totalDMinus - startNavDMinus) : totalDMinus;
