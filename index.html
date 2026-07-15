@@ -14,7 +14,7 @@
             --text-main: #333; --shadow: 0 6px 15px rgba(0,0,0,0.15);
         }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Helvetica Neue', Arial, sans-serif; }
-        body { height: 100vh; width: 100vw; overflow: hidden; background: #e5e3df; color: var(--text-main); }
+        body { height: 100vh; width: 100vw; overflow: hidden; background: #e5e3df; color: var(--text-main); touch-action: none; }
 
         #map-wrapper { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; overflow: hidden; z-index: 1; }
         #map { position: absolute; top: -25vh; left: -25vw; width: 150vw; height: 150vh; transition: transform 0.3s linear; }
@@ -22,13 +22,14 @@
         #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; pointer-events: none; }
         .interactive { pointer-events: auto; }
 
+        /* HUD & Widgets (Draggables) */
         .hud-bubble {
             position: absolute; background: var(--bg-panel); padding: 12px; border-radius: 12px;
             box-shadow: var(--shadow); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.5);
-            transition: all 0.2s ease; cursor: pointer;
+            transition: width 0.2s, height 0.2s, font-size 0.2s; cursor: grab;
         }
+        .hud-bubble:active { cursor: grabbing; }
         
-        /* Stats Redimensionnables (Dist, D+, D-) */
         #stats-bubble { top: 15px; left: 15px; font-weight: bold; line-height: 1.5; }
         .stats-sz-1 { font-size: 0.85rem; padding: 10px; }
         .stats-sz-2 { font-size: 1.15rem; padding: 15px; }
@@ -37,33 +38,30 @@
         .stat-dplus { color: #d9534f; } .stat-dminus { color: var(--green); }
         .stat-total { font-size: 0.8em; color: #888; }
 
-        /* Météo Redimensionnable */
         #weather-bubble { top: 15px; right: 15px; font-weight: bold; display: flex; flex-direction: column; gap: 4px; }
         .weather-sz-1 { font-size: 0.85rem; }
         .weather-sz-2 { font-size: 1.15rem; padding: 15px; } .weather-sz-2 .w-icon { font-size: 1.5rem; }
         .weather-sz-3 { font-size: 1.45rem; padding: 20px; } .weather-sz-3 .w-icon { font-size: 1.9rem; }
         
-        /* Compteur Vitesse Redimensionnable */
         #speed-widget {
-            bottom: 20px; left: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;
+            bottom: 110px; left: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;
             border-radius: 50%; border: 4px solid var(--accent);
         }
         .speed-sz-1 { width: 85px; height: 85px; } .speed-sz-1 #speed-val { font-size: 2.3rem; }
         .speed-sz-2 { width: 125px; height: 125px; } .speed-sz-2 #speed-val { font-size: 3.5rem; }
         .speed-sz-3 { width: 170px; height: 170px; } .speed-sz-3 #speed-val { font-size: 5rem; }
-        #speed-val { font-weight: 900; line-height: 1; color: #000; }
-        .speed-unit { font-size: 0.85rem; font-weight: bold; color: #666; }
+        #speed-val { font-weight: 900; line-height: 1; color: #000; pointer-events: none;}
+        .speed-unit { font-size: 0.85rem; font-weight: bold; color: #666; pointer-events: none;}
 
-        /* Widget Temps Restant (ETA) */
         #eta-widget {
             bottom: 20px; left: 50%; transform: translateX(-50%); display: none;
             flex-direction: column; justify-content: center; align-items: center; padding: 10px 25px;
             border-bottom: 4px solid #ffcc00;
         }
-        .eta-label { font-size: 0.8rem; color: #666; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; }
-        .eta-val { font-size: 1.8rem; font-weight: 900; color: #222; }
+        .eta-label { font-size: 0.8rem; color: #666; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; pointer-events: none;}
+        .eta-val { font-size: 1.8rem; font-weight: 900; color: #222; pointer-events: none;}
 
-        /* Bandeau Navigation (Waze style) */
+        /* Bandeau de Guidage Haut */
         #nav-header {
             position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
             background: var(--green); color: white; padding: 12px 25px; border-radius: 20px;
@@ -73,8 +71,14 @@
         #nav-dist { font-size: 1.8rem; font-weight: 900; }
         #nav-street { font-size: 1.1rem; font-weight: bold; }
 
-        /* Boutons Actions */
-        #controls { position: absolute; bottom: 20px; right: 15px; display: flex; flex-direction: column; gap: 12px; }
+        /* BARRE DE BOUTONS (BAS DE L'ÉCRAN) */
+        #bottom-bar {
+            position: absolute; bottom: 20px; left: 0; width: 100vw;
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding: 0 15px; pointer-events: none; z-index: 50;
+        }
+        .btn-group { display: flex; gap: 12px; pointer-events: auto; }
+        
         .fab {
             width: 60px; height: 60px; border-radius: 50%; border: none;
             background: white; box-shadow: var(--shadow); font-size: 1.6rem; cursor: pointer; display: flex; justify-content: center; align-items: center;
@@ -84,9 +88,10 @@
 
         /* Modal Recherche */
         #search-modal {
-            position: absolute; bottom: 95px; left: 50%; transform: translateX(-50%);
+            position: absolute; bottom: 100px; left: 50%; transform: translateX(-50%);
             width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 20px;
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.2); z-index: 100; display: none; max-height: 75vh; overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; display: none; max-height: 75vh; overflow-y: auto;
+            cursor: grab;
         }
         input { width: 100%; padding: 14px; font-size: 1rem; background: #f2f4f5; border: 1px solid #ddd; border-radius: 12px; font-weight: bold; margin-bottom: 10px; }
         #suggestions { list-style: none; margin-bottom: 10px; }
@@ -110,54 +115,54 @@
     <div id="map-wrapper"><div id="map"></div></div>
 
     <div id="ui-layer">
-        
-        <!-- HEADER VIRAGES -->
         <div id="nav-header" class="interactive">
             <div id="nav-icon">⬆️</div>
             <div><div id="nav-dist">-- m</div><div id="nav-street">Calcul...</div></div>
         </div>
 
-        <!-- STATS (Dist, D+, D-) -->
-        <div id="stats-bubble" class="hud-bubble stats-sz-1 interactive" onclick="resizeStats()">
+        <!-- WIDGETS DRAGGABLES -->
+        <div id="stats-bubble" class="hud-bubble stats-sz-1 interactive" onclick="resizeStats.call(this)">
             <div>Dist: <span id="dist-val" class="stat-hl">0.0</span> <span id="dist-total" class="stat-total"></span></div>
             <div>D+: <span id="dplus-val" class="stat-hl stat-dplus">0</span> <span id="dplus-total" class="stat-total"></span></div>
             <div>D-: <span id="dminus-val" class="stat-hl stat-dminus">0</span> <span id="dminus-total" class="stat-total"></span></div>
             <div id="batt-hud" style="display:none; margin-top:5px; border-top:1px solid #ccc; padding-top:2px;">
-                🔋 <span id="batt-val" class="stat-hl">--</span>%
+                🔋 <span id="batt-val" class="stat-hl">0.0</span> <span id="batt-total" class="stat-total"></span>
             </div>
         </div>
 
-        <!-- MÉTÉO -->
-        <div id="weather-bubble" class="hud-bubble weather-sz-1 interactive" onclick="resizeWeather()">
-            <div style="border-bottom:1px solid #ccc; padding-bottom:3px; margin-bottom:3px; color:var(--accent);">MÉTÉO</div>
-            <div id="w-h0">H: --°</div><div id="w-h1">H+1: --°</div><div id="w-h2">H+2: --°</div>
-            <div style="margin-top:3px;">💨 <span id="wind-val">--</span> km/h</div>
+        <div id="weather-bubble" class="hud-bubble weather-sz-1 interactive" onclick="resizeWeather.call(this)">
+            <div style="border-bottom:1px solid #ccc; padding-bottom:3px; margin-bottom:3px; color:var(--accent); pointer-events:none;">MÉTÉO</div>
+            <div id="w-h0" style="pointer-events:none;">H: --°</div><div id="w-h1" style="pointer-events:none;">H+1: --°</div><div id="w-h2" style="pointer-events:none;">H+2: --°</div>
+            <div style="margin-top:3px; pointer-events:none;">💨 <span id="wind-val">--</span> km/h</div>
         </div>
 
-        <!-- VITESSE -->
-        <div id="speed-widget" class="hud-bubble speed-sz-2 interactive" onclick="resizeSpeed()">
+        <div id="speed-widget" class="hud-bubble speed-sz-2 interactive" onclick="resizeSpeed.call(this)">
             <div id="speed-val">0</div><div class="speed-unit">KM/H</div>
         </div>
 
-        <!-- TEMPS RESTANT (ETA) -->
-        <div id="eta-widget" class="hud-bubble interactive">
+        <div id="eta-widget" class="hud-bubble interactive" onclick="makeDraggable(this)">
             <div class="eta-label">Temps Restant</div>
             <div id="eta-val" class="eta-val">-- min</div>
         </div>
 
-        <!-- BOUTONS -->
-        <div id="controls" class="interactive">
-            <button class="fab" onclick="toggleFullScreen()" title="Plein Écran">🔲</button>
-            <button class="fab" onclick="setWeight()" title="Régler le poids">⚖️</button>
-            <button id="gps-btn" class="fab" onclick="toggleTracking()">📍</button>
-            <button id="search-btn" class="fab" onclick="openSearch()">🔍</button>
+        <!-- BARRE DU BAS -->
+        <div id="bottom-bar">
+            <div class="btn-group">
+                <button class="fab" onclick="toggleFullScreen()" title="Plein Écran">🔲</button>
+                <button class="fab" onclick="setWeight()" title="Régler le poids">⚖️</button>
+                <button class="fab" onclick="toggleSatellite()" title="Vue Satellite">🗺️</button>
+            </div>
+            <div class="btn-group">
+                <button id="gps-btn" class="fab" onclick="toggleTracking()">📍</button>
+                <button id="search-btn" class="fab" onclick="openSearch()">🔍</button>
+            </div>
         </div>
     </div>
 
-    <!-- MODAL RECHERCHE (Plus de gestion de poids ici) -->
+    <!-- MODAL RECHERCHE -->
     <div id="search-modal" class="interactive">
         <span class="close-modal" onclick="closeSearch()">×</span>
-        <h3 style="margin-bottom: 15px;">Nouvelle Destination</h3>
+        <h3 style="margin-bottom: 15px; pointer-events:none;">Nouvelle Destination</h3>
         <input type="text" id="address-input" placeholder="Où va-t-on ?" autocomplete="off">
         <ul id="suggestions"></ul>
         <div id="route-summary" style="display:none;">
@@ -169,13 +174,16 @@
 
     <script>
         let map, userMarker, watchId = null;
-        let isTracking = false, isNavigating = false, userCoords = null, currentHeading = 0;
+        let isTracking = false, isNavigating = false, isRecalculating = false, userCoords = null, currentHeading = 0;
+        let isSatellite = false;
         
         let speedSize = 2, weatherSize = 1, statsSize = 1;
         let userWeight = parseFloat(localStorage.getItem('scooterWeight')) || 90;
+        const getTotalWeight = () => userWeight + 24.5;
         
         let totalDistanceCovered = 0, totalDPlus = 0, totalDMinus = 0, lastPos = null;
         let startNavDistance = 0, startNavDPlus = 0, startNavDMinus = 0;
+        let totalWhConsumed = 0, startNavWh = 0; // Ajout compteurs batterie réels
         
         let traversedPath = []; 
         const BATTERY_CAPACITY_WH = 561.6, SPEED_MPS = 25.0 / 3.6; 
@@ -183,12 +191,51 @@
         let routes = [], activeRoute = null, routeSteps = [], currentStepIndex = 0;
         let wakeLock = null;
 
-        // Haversine
         function calcDist(p1, p2) {
             const R = 6371e3, f1 = p1.lat * Math.PI/180, f2 = p2.lat * Math.PI/180;
             const df = (p2.lat-p1.lat) * Math.PI/180, dl = (p2.lon-p1.lon) * Math.PI/180;
             const a = Math.sin(df/2)*Math.sin(df/2) + Math.cos(f1)*Math.cos(f2)*Math.sin(dl/2)*Math.sin(dl/2);
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+
+        // --- GESTION DU DRAG & DROP DES WIDGETS ---
+        function makeDraggable(elmnt) {
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+            let dragging = false;
+            elmnt.onmousedown = dragMouseDown; elmnt.ontouchstart = dragMouseDown;
+
+            function dragMouseDown(e) {
+                if(e.target.tagName === 'INPUT' || e.target.tagName === 'BUTTON' || e.target.tagName === 'LI') return;
+                e = e || window.event;
+                if(e.type !== "touchstart") e.preventDefault();
+                
+                const rect = elmnt.getBoundingClientRect();
+                elmnt.style.transform = 'none';
+                elmnt.style.left = rect.left + 'px';
+                elmnt.style.top = rect.top + 'px';
+                elmnt.style.bottom = 'auto'; elmnt.style.right = 'auto';
+
+                pos3 = e.type === "touchstart" ? e.touches[0].clientX : e.clientX;
+                pos4 = e.type === "touchstart" ? e.touches[0].clientY : e.clientY;
+                document.onmouseup = closeDragElement; document.onmousemove = elementDrag;
+                document.ontouchend = closeDragElement; document.ontouchmove = elementDrag;
+                dragging = false;
+            }
+
+            function elementDrag(e) {
+                e = e || window.event; dragging = true;
+                let clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
+                let clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
+                pos1 = pos3 - clientX; pos2 = pos4 - clientY; pos3 = clientX; pos4 = clientY;
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+                document.onmouseup = null; document.onmousemove = null; document.ontouchend = null; document.ontouchmove = null;
+                setTimeout(() => dragging = false, 100);
+            }
+            elmnt.isDragging = () => dragging;
         }
 
         function initMap() {
@@ -198,13 +245,28 @@
             });
 
             map.on('load', () => {
+                map.addSource('satellite', { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 });
+                map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite', layout: { visibility: 'none' } });
+
                 map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
-                map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#007aff', 'line-width': 8, 'line-opacity': 0.7 } });
+                map.addLayer({ id: 'route-halo', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#007aff', 'line-width': 18, 'line-opacity': 0.25 } });
+                map.addLayer({ id: 'route-line', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#007aff', 'line-width': 6, 'line-opacity': 0.9 } });
 
                 map.addSource('path', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
-                map.addLayer({ id: 'path-line', type: 'line', source: 'path', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#15cc74', 'line-width': 8 } });
+                map.addLayer({ id: 'path-line', type: 'line', source: 'path', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#15cc74', 'line-width': 6 } });
+
+                startTracking();
             });
             document.getElementById('address-input').addEventListener('focus', showHistory);
+            
+            ['stats-bubble', 'weather-bubble', 'speed-widget', 'eta-widget', 'search-modal'].forEach(id => {
+                makeDraggable(document.getElementById(id));
+            });
+        }
+
+        function toggleSatellite() {
+            isSatellite = !isSatellite;
+            if(map.getLayer('satellite-layer')) map.setLayoutProperty('satellite-layer', 'visibility', isSatellite ? 'visible' : 'none');
         }
 
         async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
@@ -223,9 +285,9 @@
             }
         }
 
-        function resizeSpeed() { speedSize = speedSize === 3 ? 1 : speedSize + 1; document.getElementById('speed-widget').className = `hud-bubble speed-sz-${speedSize} interactive`; }
-        function resizeWeather() { weatherSize = weatherSize === 3 ? 1 : weatherSize + 1; document.getElementById('weather-bubble').className = `hud-bubble weather-sz-${weatherSize} interactive`; }
-        function resizeStats() { statsSize = statsSize === 3 ? 1 : statsSize + 1; document.getElementById('stats-bubble').className = `hud-bubble stats-sz-${statsSize} interactive`; }
+        function resizeSpeed() { if(this.isDragging && this.isDragging()) return; speedSize = speedSize === 3 ? 1 : speedSize + 1; this.className = `hud-bubble speed-sz-${speedSize} interactive`; }
+        function resizeWeather() { if(this.isDragging && this.isDragging()) return; weatherSize = weatherSize === 3 ? 1 : weatherSize + 1; this.className = `hud-bubble weather-sz-${weatherSize} interactive`; }
+        function resizeStats() { if(this.isDragging && this.isDragging()) return; statsSize = statsSize === 3 ? 1 : statsSize + 1; this.className = `hud-bubble stats-sz-${statsSize} interactive`; }
 
         async function fetchWeather(lat, lon) {
             try {
@@ -234,10 +296,10 @@
                 let idx = data.hourly.time.findIndex(t => t.startsWith(currentIso));
                 if(idx === -1) idx = 0;
 
-                const getEmoji = (c) => c<=1?'<span class="w-icon">☀️</span>':c<=3?'<span class="w-icon">⛅</span>':c<=48?'<span class="w-icon">🌫️</span>':c<=67?'<span class="w-icon">🌧️</span>':c<=77?'<span class="w-icon">❄️</span>':c<=82?'<span class="w-icon">🌦️</span>':'<span class="w-icon">⛈️</span>';
+                const getEmoji = (c) => c<=1?'☀️':c<=3?'⛅':c<=48?'🌫️':c<=67?'🌧️':c<=77?'❄️':c<=82?'🌦️':'⛈️';
                 for(let i=0; i<=2; i++) {
                     const label = i===0 ? 'H' : `H+${i}`;
-                    document.getElementById(`w-h${i}`).innerHTML = `${label}: ${getEmoji(data.hourly.weather_code[idx+i])} ${Math.round(data.hourly.temperature_2m[idx+i])}°`;
+                    document.getElementById(`w-h${i}`).innerHTML = `${label}: <span class="w-icon">${getEmoji(data.hourly.weather_code[idx+i])}</span> ${Math.round(data.hourly.temperature_2m[idx+i])}°`;
                 }
                 document.getElementById('wind-val').innerText = Math.round(data.hourly.wind_speed_10m[idx]);
             } catch(e) {}
@@ -285,7 +347,8 @@
 
         function openSearch() {
             if(!userCoords) return alert("Attendez le signal GPS !");
-            document.getElementById('search-modal').style.display = 'block'; document.getElementById('route-summary').style.display = 'none';
+            document.getElementById('search-modal').style.display = 'block';
+            document.getElementById('route-summary').style.display = 'none';
             document.getElementById('address-input').value = ''; showHistory();
         }
         function closeSearch() { document.getElementById('search-modal').style.display = 'none'; }
@@ -295,7 +358,6 @@
             document.getElementById('suggestions').innerHTML = '<li style="justify-content:center; color:var(--accent);">Calcul des itinéraires...</li>';
             saveToHistory(place);
 
-            const totalWeight = userWeight + 24.5;
             routes = [];
 
             const fetchRoute = async (profile, label) => {
@@ -320,7 +382,7 @@
                             if(eDiff > 0) dPlus += eDiff; else dMinus += Math.abs(eDiff);
                             
                             const slope = eDiff / d;
-                            let p = (0.015*totalWeight*9.81 + 0.5*1.2*0.45*Math.pow(SPEED_MPS,2) + totalWeight*9.81*slope) * SPEED_MPS;
+                            let p = (0.015*getTotalWeight()*9.81 + 0.5*1.2*0.45*Math.pow(SPEED_MPS,2) + getTotalWeight()*9.81*slope) * SPEED_MPS;
                             if(p<0) p=0;
                             whTotal += ((p/0.75)*(d/SPEED_MPS))/3600;
                         }
@@ -329,11 +391,11 @@
                     const realDist = rt.distance/1000;
                     const scale = dSampled > 0 ? (realDist/dSampled) : 1;
 
-                    return { name: label, dist: realDist, dPlus: dPlus*scale, dMinus: dMinus*scale, batt: ((whTotal*scale)/BATTERY_CAPACITY_WH)*100, coords: coords, steps: rt.legs[0].steps };
+                    return { profile: profile, name: label, dist: realDist, dPlus: dPlus*scale, dMinus: dMinus*scale, batt: ((whTotal*scale)/BATTERY_CAPACITY_WH)*100, coords: coords, steps: rt.legs[0].steps };
                 } catch(e) { return null; }
             };
 
-            const [rtBike, rtFoot] = await Promise.all([fetchRoute('bike', '🚲 Piste Cyclable'), fetchRoute('foot', '🚶‍♂️ Piéton')]);
+            const [rtBike, rtFoot] = await Promise.all([fetchRoute('bike', '🚲 Piste Cyclable'), fetchRoute('foot', '🚶‍♂️ Piéton (Raccourci)')]);
             if(rtBike) routes.push(rtBike);
             if(rtFoot && (!rtBike || Math.abs(rtFoot.dist - rtBike.dist) > 0.15)) routes.push(rtFoot);
 
@@ -372,31 +434,67 @@
             closeSearch(); requestWakeLock();
             isNavigating = true; currentStepIndex = 0;
             
-            // Fixer les bases pour le calcul "Parcouru / Total"
-            startNavDistance = totalDistanceCovered; 
-            startNavDPlus = totalDPlus; 
-            startNavDMinus = totalDMinus;
+            startNavDistance = totalDistanceCovered; startNavDPlus = totalDPlus; startNavDMinus = totalDMinus;
+            startNavWh = totalWhConsumed; // Initialise la conso du trajet
 
-            // Affichage Totaux / Y
             document.getElementById('dist-total').innerText = `/ ${activeRoute.dist.toFixed(1)} km`;
             document.getElementById('dplus-total').innerText = `/ ${Math.round(activeRoute.dPlus)} m`;
             document.getElementById('dminus-total').innerText = `/ ${Math.round(activeRoute.dMinus)} m`;
+            document.getElementById('batt-total').innerText = `/ ${activeRoute.batt.toFixed(1)} %`;
             
-            // Stats à zéro relatif
             document.getElementById('dist-val').innerText = "0.0";
             document.getElementById('dplus-val').innerText = "0";
             document.getElementById('dminus-val').innerText = "0";
-
-            document.getElementById('batt-hud').style.display = 'block';
-            document.getElementById('batt-val').innerText = activeRoute.batt.toFixed(1);
+            document.getElementById('batt-val').innerText = "0.0";
             
+            document.getElementById('batt-hud').style.display = 'block';
             document.getElementById('nav-header').style.display = 'flex';
             document.getElementById('eta-widget').style.display = 'flex';
             
             if(userCoords) {
-                map.flyTo({ center: [userCoords.lon, userCoords.lat], bearing: currentHeading, pitch: 60, zoom: 19.5, duration: 1500 });
+                map.flyTo({ center: [userCoords.lon, userCoords.lat], bearing: currentHeading, pitch: 60, zoom: 17.8, duration: 1500 });
                 updateNavigationHUD(userCoords);
             }
+        }
+
+        // --- RECALCUL AUTO ---
+        async function recalculateRoute(pos) {
+            if (isRecalculating) return;
+            isRecalculating = true;
+            document.getElementById('nav-street').innerText = "Recalcul...";
+            
+            const dest = activeRoute.coords[activeRoute.coords.length - 1]; 
+            const url = `https://routing.openstreetmap.de/routed-${activeRoute.profile || 'bike'}/route/v1/driving/${pos.lon},${pos.lat};${dest[0]},${dest[1]}?overview=full&geometries=geojson&steps=true`;
+            
+            try {
+                const res = await (await fetch(url)).json();
+                if (res.code === "Ok") {
+                    const rt = res.routes[0];
+                    activeRoute.coords = rt.geometry.coordinates; activeRoute.steps = rt.legs[0].steps; currentStepIndex = 0;
+                    
+                    const distDone = totalDistanceCovered - startNavDistance;
+                    const dPlusDone = totalDPlus - startNavDPlus;
+                    const dMinusDone = totalDMinus - startNavDMinus;
+                    const battDone = ((totalWhConsumed - startNavWh) / BATTERY_CAPACITY_WH) * 100;
+                    
+                    const oldRemainingDist = Math.max(0.1, activeRoute.dist - distDone);
+                    const realDist = rt.distance / 1000;
+                    const ratio = realDist / oldRemainingDist;
+                    
+                    activeRoute.dist = distDone + realDist; 
+                    activeRoute.dPlus = dPlusDone + (activeRoute.dPlus - dPlusDone) * ratio; 
+                    activeRoute.dMinus = dMinusDone + (activeRoute.dMinus - dMinusDone) * ratio;
+                    activeRoute.batt = battDone + ((activeRoute.batt - battDone) * ratio);
+                    
+                    document.getElementById('dist-total').innerText = `/ ${activeRoute.dist.toFixed(1)} km`;
+                    document.getElementById('dplus-total').innerText = `/ ${Math.round(activeRoute.dPlus)} m`;
+                    document.getElementById('dminus-total').innerText = `/ ${Math.round(activeRoute.dMinus)} m`;
+                    document.getElementById('batt-total').innerText = `/ ${activeRoute.batt.toFixed(1)} %`;
+                    
+                    if(map.getSource('route')) map.getSource('route').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: activeRoute.coords } });
+                }
+            } catch(e) {}
+            isRecalculating = false;
         }
 
         function getTurnEmoji(mod, type) {
@@ -411,26 +509,27 @@
         function updateNavigationHUD(pos) {
             if(!isNavigating || !activeRoute) return;
 
-            // NOUVEAU CALCUL ETA DYNAMIQUE
             let minD = Infinity, closestIdx = 0;
             for(let i=0; i<activeRoute.coords.length; i++) {
                 const d = calcDist(pos, {lat: activeRoute.coords[i][1], lon: activeRoute.coords[i][0]});
                 if(d < minD) { minD = d; closestIdx = i; }
             }
             
+            if (minD > 45 && !isRecalculating) { recalculateRoute(pos); return; }
+            
             let remKm = minD / 1000;
             for(let i=closestIdx; i<activeRoute.coords.length-1; i++) {
                 remKm += calcDist({lat: activeRoute.coords[i][1], lon: activeRoute.coords[i][0]}, {lat: activeRoute.coords[i+1][1], lon: activeRoute.coords[i+1][0]}) / 1000;
             }
             
-            const ETA = Math.round((remKm / 23) * 60);
+            const ETA = Math.max(1, Math.round((remKm / 23) * 60));
             document.getElementById('eta-val').innerText = `${ETA} min`;
 
             let distToTurn = 0, nextStep = null;
             if (currentStepIndex < activeRoute.steps.length) {
                 nextStep = activeRoute.steps[currentStepIndex];
                 distToTurn = calcDist(pos, {lat: nextStep.maneuver.location[1], lon: nextStep.maneuver.location[0]});
-                if (distToTurn < 20) {
+                if (distToTurn < 25) {
                     currentStepIndex++;
                     if (currentStepIndex < activeRoute.steps.length) {
                         nextStep = activeRoute.steps[currentStepIndex];
@@ -458,7 +557,6 @@
 
                 let speed = pos.coords.speed;
                 document.getElementById('speed-val').innerText = (speed && speed > 0.5) ? Math.round(speed * 3.6) : 0;
-                
                 if(pos.coords.heading !== null && speed > 0.8) currentHeading = pos.coords.heading; 
 
                 if (!userMarker) {
@@ -468,8 +566,7 @@
                     userMarker = new maplibregl.Marker({element: el, rotationAlignment: 'map', pitchAlignment: 'map'})
                         .setLngLat([lon, lat]).addTo(map);
                     
-                    // Zoom d'office très fort dès la localisation
-                    map.flyTo({ center: [lon, lat], pitch: 60, zoom: 19.5, duration: 1500 }); 
+                    map.flyTo({ center: [lon, lat], pitch: 60, zoom: 17.8, duration: 1500 }); 
                     fetchWeather(lat, lon); requestWakeLock();
                 } else {
                     userMarker.setLngLat([lon, lat]);
@@ -477,12 +574,12 @@
                 }
 
                 if(isNavigating) {
-                    map.easeTo({ center: [lon, lat], bearing: currentHeading, pitch: 60, zoom: 19.5, duration: 1000 });
+                    map.easeTo({ center: [lon, lat], bearing: currentHeading, pitch: 60, zoom: 17.8, duration: 1000 });
                 } else if(userMarker) {
-                    map.panTo([lon, lat]); 
+                    map.easeTo({ center: [lon, lat], bearing: currentHeading, pitch: 60, zoom: 17.8, duration: 1000 }); 
                 }
 
-                // TRACÉ ET LISSAGE
+                // TRACÉ ET LISSAGE PHYSIQUE
                 if (lastPos) {
                     const d = calcDist(lastPos, userCoords) / 1000;
                     if (d > 0.002) {
@@ -491,22 +588,31 @@
                         traversedPath.push([lon, lat]);
                         if(map.getSource('path')) map.getSource('path').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: traversedPath } });
                         
+                        let currentSlope = 0;
                         if(lastPos.alt !== null && alt !== null) {
                             const diffAlt = alt - lastPos.alt;
                             if (Math.abs(diffAlt) > 2) { 
                                 if(diffAlt > 0) totalDPlus += diffAlt; else totalDMinus += Math.abs(diffAlt);
+                                currentSlope = diffAlt / (d * 1000);
                                 lastPos.alt = alt;
                             }
                         }
 
-                        // Mise à jour de l'affichage (Relatif ou Global)
+                        // Calcul Dynamique Batterie (Temps Réel)
+                        let p = (0.015*getTotalWeight()*9.81 + 0.5*1.2*0.45*Math.pow(SPEED_MPS,2) + getTotalWeight()*9.81*currentSlope) * SPEED_MPS;
+                        if(p < 0) p = 0;
+                        totalWhConsumed += ((p/0.75)*(d/SPEED_MPS))/3600;
+
+                        // Affichages Relatifs ou Globaux
                         let displayDist = isNavigating ? (totalDistanceCovered - startNavDistance) : totalDistanceCovered;
                         let displayDPlus = isNavigating ? (totalDPlus - startNavDPlus) : totalDPlus;
                         let displayDMinus = isNavigating ? (totalDMinus - startNavDMinus) : totalDMinus;
+                        let displayBatt = isNavigating ? ((totalWhConsumed - startNavWh)/BATTERY_CAPACITY_WH)*100 : (totalWhConsumed/BATTERY_CAPACITY_WH)*100;
 
                         document.getElementById('dist-val').innerText = displayDist.toFixed(1);
                         document.getElementById('dplus-val').innerText = Math.round(displayDPlus);
                         document.getElementById('dminus-val').innerText = Math.round(displayDMinus);
+                        document.getElementById('batt-val').innerText = displayBatt.toFixed(1);
 
                         if(isNavigating) updateNavigationHUD(userCoords);
                     }
