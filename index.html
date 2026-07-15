@@ -22,7 +22,7 @@
         #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; pointer-events: none; }
         .interactive { pointer-events: auto; }
 
-        /* HUD & Widgets (Draggables) */
+        /* --- BASE WIDGETS (LANDSCAPE PAR DÉFAUT) --- */
         .hud-bubble {
             position: absolute; background: var(--bg-panel); padding: 12px; border-radius: 12px;
             box-shadow: var(--shadow); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.5);
@@ -54,16 +54,15 @@
         .speed-unit { font-size: 0.85rem; font-weight: bold; color: #666; pointer-events: none;}
 
         #eta-widget {
-            bottom: 20px; left: 50%; transform: translateX(-50%); display: none;
+            bottom: max(30px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: none;
             flex-direction: column; justify-content: center; align-items: center; padding: 10px 25px;
             border-bottom: 4px solid #ffcc00;
         }
         .eta-label { font-size: 0.8rem; color: #666; text-transform: uppercase; font-weight: bold; letter-spacing: 1px; pointer-events: none;}
         .eta-val { font-size: 1.8rem; font-weight: 900; color: #222; pointer-events: none;}
 
-        /* Bandeau de Guidage Haut */
         #nav-header {
-            position: absolute; top: 15px; left: 50%; transform: translateX(-50%);
+            position: absolute; top: max(15px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%);
             background: var(--green); color: white; padding: 12px 25px; border-radius: 20px;
             display: none; align-items: center; gap: 15px; box-shadow: var(--shadow); min-width: 250px;
         }
@@ -71,9 +70,9 @@
         #nav-dist { font-size: 1.8rem; font-weight: 900; }
         #nav-street { font-size: 1.1rem; font-weight: bold; }
 
-        /* BARRE DE BOUTONS (BAS DE L'ÉCRAN) */
+        /* BOUTONS ACTIONS */
         #bottom-bar {
-            position: absolute; bottom: 20px; left: 0; width: 100vw;
+            position: absolute; bottom: max(30px, env(safe-area-inset-bottom)); left: 0; width: 100vw;
             display: flex; justify-content: space-between; align-items: flex-end;
             padding: 0 15px; pointer-events: none; z-index: 50;
         }
@@ -86,36 +85,44 @@
         #search-btn { color: var(--accent); }
         #gps-btn { color: #555; } #gps-btn.active { color: var(--green); }
 
-        /* --- MODAL RECHERCHE COMPACT ET CENTRÉ --- */
+        /* MODAL RECHERCHE */
         #search-modal {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 92%; max-width: 450px; background: white; padding: 15px; border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; display: none; max-height: 95vh; overflow-y: auto;
+            width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; display: none; max-height: 85vh; overflow-y: auto;
             cursor: grab; display: flex; flex-direction: column;
         }
         #search-modal h3 { margin-bottom: 10px; font-size: 1.2rem; }
-        .input-group { display: flex; gap: 10px; margin-bottom: 5px; }
-        input { width: 100%; padding: 12px; font-size: 1rem; background: #f2f4f5; border: 1px solid #ddd; border-radius: 12px; font-weight: bold; margin-bottom: 5px; }
-        
-        #suggestions { list-style: none; margin-bottom: 5px; }
-        #suggestions li { padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: 500; display: flex; justify-content: space-between; }
-        
-        #route-summary { display: flex; flex-direction: column; }
-        #route-tabs { display: flex; gap: 10px; margin-bottom: 8px; }
+        input { width: 100%; padding: 14px; font-size: 1rem; background: #f2f4f5; border: 1px solid #ddd; border-radius: 12px; font-weight: bold; margin-bottom: 10px; }
+        #suggestions { list-style: none; margin-bottom: 10px; }
+        #suggestions li { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: 500; display: flex; justify-content: space-between; }
+        #route-tabs { display: flex; gap: 10px; margin-bottom: 10px; }
         .route-tab { flex: 1; padding: 10px; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; background: #eee; color: #555; }
         .route-tab.active { background: var(--accent); color: white; }
-        
-        /* Grille Compacte pour les détails */
-        #route-details { 
-            background: #f2f4f5; padding: 10px 15px; border-radius: 12px; font-size: 0.95rem; font-weight: bold; 
-            display: grid; grid-template-columns: 1fr 1fr; gap: 5px 15px; 
-        }
+        #route-details { background: #f2f4f5; padding: 10px 15px; border-radius: 12px; font-size: 0.95rem; font-weight: bold; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 15px; }
         .summary-item { display: flex; justify-content: space-between; margin-bottom: 0; }
-        
         #start-nav-btn { width: 100%; padding: 12px; margin-top: 10px; background: var(--green); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 1.1rem; cursor: pointer; }
         .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.8rem; cursor: pointer; color: #888; }
-        
         .marker-arrow svg { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); }
+
+        /* ========================================= */
+        /* --- MODE PORTRAIT (ADAPTATION MOBILE) --- */
+        /* ========================================= */
+        @media (orientation: portrait) {
+            #nav-header { width: 90%; }
+            #stats-bubble { top: max(95px, env(safe-area-inset-top) + 80px); left: 15px; }
+            #weather-bubble { top: max(95px, env(safe-area-inset-top) + 80px); right: 15px; }
+            
+            /* Les boutons passent en colonne sur la droite */
+            #bottom-bar {
+                top: 50%; right: 15px; bottom: auto; left: auto; width: auto;
+                transform: translateY(-50%);
+                flex-direction: column; align-items: flex-end; padding: 0;
+            }
+            .btn-group { flex-direction: column; gap: 12px; }
+            
+            #speed-widget { bottom: max(100px, env(safe-area-inset-bottom) + 80px); left: 15px; }
+        }
     </style>
 </head>
 <body>
@@ -153,15 +160,13 @@
             <div id="eta-val" class="eta-val">-- min</div>
         </div>
 
-        <!-- BARRE DU BAS -->
+        <!-- BARRE DE BOUTONS (Responsive) -->
         <div id="bottom-bar">
-            <!-- Gauche -->
             <div class="btn-group">
                 <button class="fab" onclick="toggleFullScreen()" title="Plein Écran">🔲</button>
                 <button class="fab" onclick="setWeight()" title="Régler le poids">⚖️</button>
                 <button class="fab" onclick="toggleSatellite()" title="Vue Satellite">🗺️</button>
             </div>
-            <!-- Droite -->
             <div class="btn-group">
                 <button id="gps-btn" class="fab" onclick="toggleTracking()">📍</button>
                 <button id="search-btn" class="fab" onclick="openSearch()">🔍</button>
@@ -208,14 +213,13 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // --- DRAG & DROP SÉCURISÉ (Bloqué sur les zones de scroll) ---
+        // --- DRAG & DROP SÉCURISÉ ---
         function makeDraggable(elmnt) {
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
             let dragging = false;
             elmnt.onmousedown = dragMouseDown; elmnt.ontouchstart = dragMouseDown;
 
             function dragMouseDown(e) {
-                // Ignore le drag si on clique sur un input, bouton, ou zone de détails/suggestions
                 if(['INPUT', 'BUTTON', 'LI'].includes(e.target.tagName) || e.target.closest('#route-details') || e.target.closest('#suggestions')) return;
                 e = e || window.event;
                 if(e.type !== "touchstart") e.preventDefault();
@@ -247,6 +251,15 @@
             }
             elmnt.isDragging = () => dragging;
         }
+
+        // --- SÉCURITÉ DE ROTATION DU TÉLÉPHONE ---
+        window.addEventListener('orientationchange', () => {
+            // Remet les widgets à leur position CSS par défaut pour s'adapter à la nouvelle orientation
+            ['stats-bubble', 'weather-bubble', 'speed-widget', 'eta-widget', 'search-modal'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) { el.style.top = ''; el.style.left = ''; el.style.bottom = ''; el.style.right = ''; el.style.transform = ''; }
+            });
+        });
 
         function initMap() {
             map = new maplibregl.Map({
@@ -291,7 +304,7 @@
             const w = prompt("Votre poids + équipement (kg) :", userWeight);
             if (w && !isNaN(w)) {
                 userWeight = parseFloat(w); localStorage.setItem('scooterWeight', userWeight);
-                alert(`Poids de calcul mis à jour : ${userWeight} kg`);
+                alert(`Poids de calcul enregistré : ${userWeight} kg`);
             }
         }
 
@@ -357,7 +370,7 @@
 
         function openSearch() {
             if(!userCoords) return alert("Attendez le signal GPS !");
-            document.getElementById('search-modal').style.display = 'flex'; // Change to Flex
+            document.getElementById('search-modal').style.display = 'flex';
             document.getElementById('route-summary').style.display = 'none';
             document.getElementById('address-input').value = ''; showHistory();
         }
@@ -411,7 +424,7 @@
 
             if(routes.length === 0) { document.getElementById('suggestions').innerHTML = '<li>Route introuvable.</li>'; return; }
 
-            document.getElementById('suggestions').innerHTML = ''; document.getElementById('route-summary').style.display = 'flex';
+            document.getElementById('suggestions').innerHTML = ''; document.getElementById('route-summary').style.display = 'block';
             renderRouteTabs(); previewRoute(0);
         }
 
@@ -427,7 +440,6 @@
             document.querySelectorAll('.route-tab').forEach((b, i) => b.className = `route-tab ${i===index?'active':''}`);
             activeRoute = routes[index];
             
-            // Grille pour compacter l'affichage
             document.getElementById('route-details').innerHTML = `
                 <div class="summary-item"><span>Dist:</span> <span>${activeRoute.dist.toFixed(1)} km</span></div>
                 <div class="summary-item"><span>Temps:</span> <span>${Math.round((activeRoute.dist/23)*60)} min</span></div>
