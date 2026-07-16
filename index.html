@@ -85,15 +85,15 @@
         #search-btn { color: var(--accent); }
         #gps-btn { color: #555; } #gps-btn.active { color: var(--green); }
 
-        /* MODAL RECHERCHE */
-        #search-modal {
+        /* MODALS (Recherche & Trottinette) */
+        #search-modal, #scooter-modal {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 20px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; display: none; max-height: 85vh; overflow-y: auto;
-            cursor: grab; display: flex; flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 100; display: none; flex-direction: column;
+            max-height: 85vh; overflow-y: auto; cursor: grab;
         }
-        #search-modal h3 { margin-bottom: 10px; font-size: 1.2rem; }
-        input { width: 100%; padding: 14px; font-size: 1rem; background: #f2f4f5; border: 1px solid #ddd; border-radius: 12px; font-weight: bold; margin-bottom: 10px; }
+        h3 { margin-bottom: 10px; font-size: 1.2rem; }
+        input, select { width: 100%; padding: 14px; font-size: 1rem; background: #f2f4f5; border: 1px solid #ddd; border-radius: 12px; font-weight: bold; margin-bottom: 10px; }
         #suggestions { list-style: none; margin-bottom: 10px; }
         #suggestions li { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; font-weight: 500; display: flex; justify-content: space-between; }
         #route-tabs { display: flex; gap: 10px; margin-bottom: 10px; }
@@ -101,7 +101,7 @@
         .route-tab.active { background: var(--accent); color: white; }
         #route-details { background: #f2f4f5; padding: 10px 15px; border-radius: 12px; font-size: 0.95rem; font-weight: bold; display: grid; grid-template-columns: 1fr 1fr; gap: 5px 15px; }
         .summary-item { display: flex; justify-content: space-between; margin-bottom: 0; }
-        #start-nav-btn { width: 100%; padding: 12px; margin-top: 10px; background: var(--green); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 1.1rem; cursor: pointer; }
+        .primary-btn { width: 100%; padding: 12px; margin-top: 10px; background: var(--green); color: white; border: none; border-radius: 12px; font-weight: 900; font-size: 1.1rem; cursor: pointer; }
         .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.8rem; cursor: pointer; color: #888; }
         .marker-arrow svg { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); }
 
@@ -113,14 +113,12 @@
             #stats-bubble { top: max(95px, env(safe-area-inset-top) + 80px); left: 15px; }
             #weather-bubble { top: max(95px, env(safe-area-inset-top) + 80px); right: 15px; }
             
-            /* Les boutons passent en colonne sur la droite */
             #bottom-bar {
                 top: 50%; right: 15px; bottom: auto; left: auto; width: auto;
                 transform: translateY(-50%);
                 flex-direction: column; align-items: flex-end; padding: 0;
             }
             .btn-group { flex-direction: column; gap: 12px; }
-            
             #speed-widget { bottom: max(100px, env(safe-area-inset-bottom) + 80px); left: 15px; }
         }
     </style>
@@ -165,6 +163,7 @@
             <div class="btn-group">
                 <button class="fab" onclick="toggleFullScreen()" title="Plein Écran">🔲</button>
                 <button class="fab" onclick="setWeight()" title="Régler le poids">⚖️</button>
+                <button class="fab" onclick="openScooterModal()" title="Trotinette">🛴</button>
                 <button class="fab" onclick="toggleSatellite()" title="Vue Satellite">🗺️</button>
             </div>
             <div class="btn-group">
@@ -180,28 +179,76 @@
         <h3 style="pointer-events:none;">Nouvelle Destination</h3>
         <input type="text" id="address-input" placeholder="Où va-t-on ?" autocomplete="off">
         <ul id="suggestions"></ul>
-        <div id="route-summary" style="display:none;">
+        <div id="route-summary" style="display:none; flex-direction:column;">
             <div id="route-tabs"></div>
             <div id="route-details"></div>
-            <button id="start-nav-btn" onclick="startNavigation()">DÉMARRER LE TRAJET</button>
+            <button class="primary-btn" onclick="startNavigation()">DÉMARRER LE TRAJET</button>
         </div>
     </div>
 
+    <!-- MODAL CHOIX TROTTINETTE -->
+    <div id="scooter-modal" class="interactive">
+        <span class="close-modal" onclick="closeScooterModal()">×</span>
+        <h3 style="pointer-events:none;">Choix du Modèle</h3>
+        <select id="scooter-select" style="cursor:pointer;"></select>
+        <button class="primary-btn" style="background:var(--accent);" onclick="saveScooter()">SÉLECTIONNER</button>
+    </div>
+
     <script>
+        // --- BASE DE DONNÉES EXHAUSTIVE TROTTINETTES ---
+        const SCOOTER_DB = {
+            "Xiaomi 4 Go": { weight: 13.7, battery: 165 },
+            "Xiaomi 4 Lite": { weight: 15.6, battery: 187 },
+            "Xiaomi 4 Lite (Gen 2)": { weight: 16.2, battery: 230 },
+            "Xiaomi 4": { weight: 17.2, battery: 275 },
+            "Xiaomi 4 Pro": { weight: 16.5, battery: 446 },
+            "Xiaomi 4 Pro (Gen 2)": { weight: 19.0, battery: 468 },
+            "Xiaomi 4 Pro Plus": { weight: 19.5, battery: 546 },
+            "Xiaomi 4 Ultra": { weight: 24.5, battery: 561.6 },
+            "Xiaomi 5": { weight: 20.1, battery: 477 },
+            "Xiaomi 5 Pro": { weight: 22.4, battery: 477 },
+            "Xiaomi 5 Plus": { weight: 26.6, battery: 477 },
+            "Xiaomi 6": { weight: 26.3, battery: 360 },
+            "Ninebot F2 Pro": { weight: 18.5, battery: 460 },
+            "Ninebot Max G30E II": { weight: 19.1, battery: 551 },
+            "Ninebot Max G2": { weight: 24.3, battery: 551 },
+            "Ninebot ZT3 Pro E": { weight: 29.0, battery: 597 },
+            "Ninebot E3 Pro E": { weight: 19.5, battery: 400 },
+            "Kukirin G2": { weight: 25.3, battery: 720 },
+            "Kukirin G2 Pro": { weight: 26.7, battery: 720 },
+            "Kukirin G2 Max": { weight: 31.0, battery: 998 },
+            "Kukirin G2 Master": { weight: 33.0, battery: 1081 },
+            "Kukirin G3 Pro": { weight: 39.6, battery: 1209 },
+            "Kukirin G4": { weight: 37.0, battery: 1200 },
+            "Kukirin M4 Pro": { weight: 22.5, battery: 864 },
+            "OOTD S10": { weight: 27.0, battery: 960 },
+            "OOTD D88": { weight: 46.0, battery: 2112 },
+            "Dualtron Togo": { weight: 22.0, battery: 720 },
+            "Dualtron Popular": { weight: 24.0, battery: 1200 },
+            "Teverun Fighter Mini": { weight: 29.5, battery: 1248 },
+            "Vsett 8": { weight: 21.0, battery: 748 },
+            "Joyor S10S": { weight: 27.1, battery: 1080 },
+            "Pure Electric Advance": { weight: 16.2, battery: 345 },
+            "Navee N65": { weight: 23.5, battery: 597 },
+            "Evercross EV85F": { weight: 15.0, battery: 280 }
+        };
+        let currentScooter = JSON.parse(localStorage.getItem('currentScooter')) || { name: "Xiaomi 4 Ultra", weight: 24.5, battery: 561.6 };
+
         let map, userMarker, watchId = null;
         let isTracking = false, isNavigating = false, isRecalculating = false, userCoords = null, currentHeading = 0;
-        let isSatellite = false;
+        let isSatellite = true; // SATELLITE ACTIVÉ PAR DÉFAUT
         
         let speedSize = 2, weatherSize = 1, statsSize = 1;
         let userWeight = parseFloat(localStorage.getItem('scooterWeight')) || 90;
-        const getTotalWeight = () => userWeight + 24.5;
+        
+        // Poids total dynamique
+        const getTotalWeight = () => userWeight + currentScooter.weight;
         
         let totalDistanceCovered = 0, totalDPlus = 0, totalDMinus = 0, lastPos = null;
         let startNavDistance = 0, startNavDPlus = 0, startNavDMinus = 0;
         let totalWhConsumed = 0, startNavWh = 0; 
-        
         let traversedPath = []; 
-        const BATTERY_CAPACITY_WH = 561.6, SPEED_MPS = 25.0 / 3.6; 
+        const SPEED_MPS = 25.0 / 3.6; 
         
         let routes = [], activeRoute = null, routeSteps = [], currentStepIndex = 0;
         let wakeLock = null;
@@ -215,12 +262,12 @@
 
         // --- DRAG & DROP SÉCURISÉ ---
         function makeDraggable(elmnt) {
-            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-            let dragging = false;
+            let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0, dragging = false;
             elmnt.onmousedown = dragMouseDown; elmnt.ontouchstart = dragMouseDown;
 
             function dragMouseDown(e) {
-                if(['INPUT', 'BUTTON', 'LI'].includes(e.target.tagName) || e.target.closest('#route-details') || e.target.closest('#suggestions')) return;
+                // Ignore le drag sur les menus déroulants, boutons et champs de texte
+                if(['INPUT', 'BUTTON', 'LI', 'SELECT', 'OPTION'].includes(e.target.tagName) || e.target.closest('#route-details') || e.target.closest('#suggestions')) return;
                 e = e || window.event;
                 if(e.type !== "touchstart") e.preventDefault();
                 
@@ -241,8 +288,7 @@
                 let clientX = e.type === "touchmove" ? e.touches[0].clientX : e.clientX;
                 let clientY = e.type === "touchmove" ? e.touches[0].clientY : e.clientY;
                 pos1 = pos3 - clientX; pos2 = pos4 - clientY; pos3 = clientX; pos4 = clientY;
-                elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
-                elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+                elmnt.style.top = (elmnt.offsetTop - pos2) + "px"; elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
             }
 
             function closeDragElement() {
@@ -254,8 +300,7 @@
 
         // --- SÉCURITÉ DE ROTATION DU TÉLÉPHONE ---
         window.addEventListener('orientationchange', () => {
-            // Remet les widgets à leur position CSS par défaut pour s'adapter à la nouvelle orientation
-            ['stats-bubble', 'weather-bubble', 'speed-widget', 'eta-widget', 'search-modal'].forEach(id => {
+            ['stats-bubble', 'weather-bubble', 'speed-widget', 'eta-widget', 'search-modal', 'scooter-modal'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) { el.style.top = ''; el.style.left = ''; el.style.bottom = ''; el.style.right = ''; el.style.transform = ''; }
             });
@@ -269,7 +314,8 @@
 
             map.on('load', () => {
                 map.addSource('satellite', { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 });
-                map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite', layout: { visibility: 'none' } });
+                // SATELLITE VISIBLE PAR DÉFAUT
+                map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite', layout: { visibility: 'visible' } });
 
                 map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
                 map.addLayer({ id: 'route-halo', type: 'line', source: 'route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#007aff', 'line-width': 18, 'line-opacity': 0.25 } });
@@ -282,11 +328,12 @@
             });
             document.getElementById('address-input').addEventListener('focus', showHistory);
             
-            ['stats-bubble', 'weather-bubble', 'speed-widget', 'eta-widget', 'search-modal'].forEach(id => {
+            ['stats-bubble', 'weather-bubble', 'speed-widget', 'eta-widget', 'search-modal', 'scooter-modal'].forEach(id => {
                 makeDraggable(document.getElementById(id));
             });
         }
 
+        // --- GESTION DES MODALS & BOUTONS ---
         function toggleSatellite() {
             isSatellite = !isSatellite;
             if(map.getLayer('satellite-layer')) map.setLayoutProperty('satellite-layer', 'visibility', isSatellite ? 'visible' : 'none');
@@ -304,14 +351,36 @@
             const w = prompt("Votre poids + équipement (kg) :", userWeight);
             if (w && !isNaN(w)) {
                 userWeight = parseFloat(w); localStorage.setItem('scooterWeight', userWeight);
-                alert(`Poids de calcul enregistré : ${userWeight} kg`);
             }
+        }
+
+        // MENU TROTTINETTE DÉROULANT
+        function openScooterModal() {
+            const select = document.getElementById('scooter-select');
+            select.innerHTML = '';
+            Object.keys(SCOOTER_DB).forEach(model => {
+                const opt = document.createElement('option');
+                opt.value = model; opt.innerText = model;
+                if(model === currentScooter.name) opt.selected = true;
+                select.appendChild(opt);
+            });
+            document.getElementById('scooter-modal').style.display = 'flex';
+        }
+        function closeScooterModal() { document.getElementById('scooter-modal').style.display = 'none'; }
+        function saveScooter() {
+            const selection = document.getElementById('scooter-select').value;
+            if(SCOOTER_DB[selection]) {
+                currentScooter = { name: selection, ...SCOOTER_DB[selection] };
+                localStorage.setItem('currentScooter', JSON.stringify(currentScooter));
+            }
+            closeScooterModal();
         }
 
         function resizeSpeed() { if(this.isDragging && this.isDragging()) return; speedSize = speedSize === 3 ? 1 : speedSize + 1; this.className = `hud-bubble speed-sz-${speedSize} interactive`; }
         function resizeWeather() { if(this.isDragging && this.isDragging()) return; weatherSize = weatherSize === 3 ? 1 : weatherSize + 1; this.className = `hud-bubble weather-sz-${weatherSize} interactive`; }
         function resizeStats() { if(this.isDragging && this.isDragging()) return; statsSize = statsSize === 3 ? 1 : statsSize + 1; this.className = `hud-bubble stats-sz-${statsSize} interactive`; }
 
+        // --- MÉTÉO ---
         async function fetchWeather(lat, lon) {
             try {
                 const data = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weather_code,wind_speed_10m&timezone=auto&forecast_days=2`)).json();
@@ -328,6 +397,7 @@
             } catch(e) {}
         }
 
+        // --- RECHERCHE ET HISTORIQUE ---
         let searchHistory = JSON.parse(localStorage.getItem('scooterHist') || '[]');
         function saveToHistory(place) {
             const name = place.display_name; const exists = searchHistory.findIndex(p => p.name === name);
@@ -414,7 +484,7 @@
                     const realDist = rt.distance/1000;
                     const scale = dSampled > 0 ? (realDist/dSampled) : 1;
 
-                    return { profile: profile, name: label, dist: realDist, dPlus: dPlus*scale, dMinus: dMinus*scale, batt: ((whTotal*scale)/BATTERY_CAPACITY_WH)*100, coords: coords, steps: rt.legs[0].steps };
+                    return { profile: profile, name: label, dist: realDist, dPlus: dPlus*scale, dMinus: dMinus*scale, batt: ((whTotal*scale)/currentScooter.battery)*100, coords: coords, steps: rt.legs[0].steps };
                 } catch(e) { return null; }
             };
 
@@ -424,7 +494,7 @@
 
             if(routes.length === 0) { document.getElementById('suggestions').innerHTML = '<li>Route introuvable.</li>'; return; }
 
-            document.getElementById('suggestions').innerHTML = ''; document.getElementById('route-summary').style.display = 'block';
+            document.getElementById('suggestions').innerHTML = ''; document.getElementById('route-summary').style.display = 'flex';
             renderRouteTabs(); previewRoute(0);
         }
 
@@ -500,7 +570,7 @@
                     const distDone = totalDistanceCovered - startNavDistance;
                     const dPlusDone = totalDPlus - startNavDPlus;
                     const dMinusDone = totalDMinus - startNavDMinus;
-                    const battDone = ((totalWhConsumed - startNavWh) / BATTERY_CAPACITY_WH) * 100;
+                    const battDone = ((totalWhConsumed - startNavWh) / currentScooter.battery) * 100;
                     
                     const oldRemainingDist = Math.max(0.1, activeRoute.dist - distDone);
                     const realDist = rt.distance / 1000;
@@ -630,7 +700,7 @@
                         let displayDist = isNavigating ? (totalDistanceCovered - startNavDistance) : totalDistanceCovered;
                         let displayDPlus = isNavigating ? (totalDPlus - startNavDPlus) : totalDPlus;
                         let displayDMinus = isNavigating ? (totalDMinus - startNavDMinus) : totalDMinus;
-                        let displayBatt = isNavigating ? ((totalWhConsumed - startNavWh)/BATTERY_CAPACITY_WH)*100 : (totalWhConsumed/BATTERY_CAPACITY_WH)*100;
+                        let displayBatt = isNavigating ? ((totalWhConsumed - startNavWh)/currentScooter.battery)*100 : (totalWhConsumed/currentScooter.battery)*100;
 
                         document.getElementById('dist-val').innerText = displayDist.toFixed(1);
                         document.getElementById('dplus-val').innerText = Math.round(displayDPlus);
