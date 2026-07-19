@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Navigation Pro - Xiaomi 4 Ultra</title>
+    <title>Navigation Pro - Trottinette GPS</title>
     
     <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
     <script src="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.js"></script>
@@ -22,7 +22,7 @@
         #ui-layer { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; pointer-events: none; }
         .interactive { pointer-events: auto; }
 
-        /* --- BASE WIDGETS (LANDSCAPE PAR DÉFAUT) --- */
+        /* --- BASE WIDGETS --- */
         .hud-bubble {
             position: absolute; background: var(--bg-panel); padding: 12px; border-radius: 12px;
             box-shadow: var(--shadow); backdrop-filter: blur(5px); border: 1px solid rgba(255,255,255,0.5);
@@ -47,11 +47,12 @@
             bottom: 110px; left: 15px; display: flex; flex-direction: column; justify-content: center; align-items: center;
             border-radius: 50%; border: 4px solid var(--accent);
         }
-        .speed-sz-1 { width: 85px; height: 85px; } .speed-sz-1 #speed-val { font-size: 2.3rem; }
-        .speed-sz-2 { width: 125px; height: 125px; } .speed-sz-2 #speed-val { font-size: 3.5rem; }
-        .speed-sz-3 { width: 170px; height: 170px; } .speed-sz-3 #speed-val { font-size: 5rem; }
+        .speed-sz-1 { width: 85px; height: 85px; } .speed-sz-1 #speed-val { font-size: 2rem; } .speed-sz-1 .max-speed { font-size: 0.6rem; }
+        .speed-sz-2 { width: 125px; height: 125px; } .speed-sz-2 #speed-val { font-size: 3.2rem; } .speed-sz-2 .max-speed { font-size: 0.85rem; }
+        .speed-sz-3 { width: 170px; height: 170px; } .speed-sz-3 #speed-val { font-size: 4.5rem; } .speed-sz-3 .max-speed { font-size: 1.1rem; }
         #speed-val { font-weight: 900; line-height: 1; color: #000; pointer-events: none;}
         .speed-unit { font-size: 0.85rem; font-weight: bold; color: #666; pointer-events: none;}
+        .max-speed { font-weight: 900; color: #d9534f; margin-top: 2px; pointer-events: none; }
 
         #eta-widget {
             bottom: max(30px, env(safe-area-inset-bottom)); left: 50%; transform: translateX(-50%); display: none;
@@ -80,12 +81,12 @@
         
         .fab {
             width: 60px; height: 60px; border-radius: 50%; border: none;
-            background: white; box-shadow: var(--shadow); font-size: 1.6rem; cursor: pointer; display: flex; justify-content: center; align-items: center;
+            background: white; box-shadow: var(--shadow); font-size: 1.6rem; cursor: pointer; display: flex; justify-content: center; align-items: center; transition: color 0.3s;
         }
         #search-btn { color: var(--accent); }
         #gps-btn { color: #555; } #gps-btn.active { color: var(--green); }
 
-        /* MODALS (Recherche & Trottinette) */
+        /* MODALS */
         #search-modal, #scooter-modal {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
             width: 92%; max-width: 450px; background: white; padding: 20px; border-radius: 20px;
@@ -105,18 +106,14 @@
         .close-modal { position: absolute; top: 10px; right: 15px; font-size: 1.8rem; cursor: pointer; color: #888; }
         .marker-arrow svg { filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4)); }
 
-        /* ========================================= */
-        /* --- MODE PORTRAIT (ADAPTATION MOBILE) --- */
-        /* ========================================= */
+        /* --- MODE PORTRAIT --- */
         @media (orientation: portrait) {
             #nav-header { width: 90%; }
             #stats-bubble { top: max(95px, env(safe-area-inset-top) + 80px); left: 15px; }
             #weather-bubble { top: max(95px, env(safe-area-inset-top) + 80px); right: 15px; }
-            
             #bottom-bar {
                 top: 50%; right: 15px; bottom: auto; left: auto; width: auto;
-                transform: translateY(-50%);
-                flex-direction: column; align-items: flex-end; padding: 0;
+                transform: translateY(-50%); flex-direction: column; align-items: flex-end; padding: 0;
             }
             .btn-group { flex-direction: column; gap: 12px; }
             #speed-widget { bottom: max(100px, env(safe-area-inset-bottom) + 80px); left: 15px; }
@@ -138,8 +135,8 @@
             <div>Dist: <span id="dist-val" class="stat-hl">0.0</span> <span id="dist-total" class="stat-total"></span></div>
             <div>D+: <span id="dplus-val" class="stat-hl stat-dplus">0</span> <span id="dplus-total" class="stat-total"></span></div>
             <div>D-: <span id="dminus-val" class="stat-hl stat-dminus">0</span> <span id="dminus-total" class="stat-total"></span></div>
-            <div id="batt-hud" style="display:none; margin-top:5px; border-top:1px solid #ccc; padding-top:2px;">
-                🔋 <span id="batt-val" class="stat-hl">0.0</span> <span id="batt-total" class="stat-total"></span>
+            <div id="batt-hud" style="margin-top:5px; border-top:1px solid #ccc; padding-top:2px;">
+                🔋 <span id="batt-val" class="stat-hl">0.0</span>% <span id="batt-total" class="stat-total"></span>
             </div>
         </div>
 
@@ -151,6 +148,7 @@
 
         <div id="speed-widget" class="hud-bubble speed-sz-2 interactive" onclick="resizeSpeed.call(this)">
             <div id="speed-val">0</div><div class="speed-unit">KM/H</div>
+            <div id="max-speed-val" class="max-speed">MAX: 0</div>
         </div>
 
         <div id="eta-widget" class="hud-bubble interactive" onclick="makeDraggable(this)">
@@ -158,7 +156,6 @@
             <div id="eta-val" class="eta-val">-- min</div>
         </div>
 
-        <!-- BARRE DE BOUTONS (Responsive) -->
         <div id="bottom-bar">
             <div class="btn-group">
                 <button class="fab" onclick="toggleFullScreen()" title="Plein Écran">🔲</button>
@@ -197,56 +194,56 @@
     <script>
         // --- BASE DE DONNÉES EXHAUSTIVE TROTTINETTES ---
         const SCOOTER_DB = {
-            "Xiaomi 4 Go": { weight: 13.7, battery: 165 },
-            "Xiaomi 4 Lite": { weight: 15.6, battery: 187 },
-            "Xiaomi 4 Lite (Gen 2)": { weight: 16.2, battery: 230 },
-            "Xiaomi 4": { weight: 17.2, battery: 275 },
-            "Xiaomi 4 Pro": { weight: 16.5, battery: 446 },
-            "Xiaomi 4 Pro (Gen 2)": { weight: 19.0, battery: 468 },
-            "Xiaomi 4 Pro Plus": { weight: 19.5, battery: 546 },
-            "Xiaomi 4 Ultra": { weight: 24.5, battery: 561.6 },
-            "Xiaomi 5": { weight: 20.1, battery: 477 },
-            "Xiaomi 5 Pro": { weight: 22.4, battery: 477 },
-            "Xiaomi 5 Plus": { weight: 26.6, battery: 477 },
-            "Xiaomi 6": { weight: 26.3, battery: 360 },
-            "Ninebot F2 Pro": { weight: 18.5, battery: 460 },
-            "Ninebot Max G30E II": { weight: 19.1, battery: 551 },
-            "Ninebot Max G2": { weight: 24.3, battery: 551 },
-            "Ninebot ZT3 Pro E": { weight: 29.0, battery: 597 },
-            "Ninebot E3 Pro E": { weight: 19.5, battery: 400 },
-            "Kukirin G2": { weight: 25.3, battery: 720 },
-            "Kukirin G2 Pro": { weight: 26.7, battery: 720 },
-            "Kukirin G2 Max": { weight: 31.0, battery: 998 },
-            "Kukirin G2 Master": { weight: 33.0, battery: 1081 },
-            "Kukirin G3 Pro": { weight: 39.6, battery: 1209 },
-            "Kukirin G4": { weight: 37.0, battery: 1200 },
-            "Kukirin M4 Pro": { weight: 22.5, battery: 864 },
-            "OOTD S10": { weight: 27.0, battery: 960 },
-            "OOTD D88": { weight: 46.0, battery: 2112 },
-            "Dualtron Togo": { weight: 22.0, battery: 720 },
-            "Dualtron Popular": { weight: 24.0, battery: 1200 },
-            "Teverun Fighter Mini": { weight: 29.5, battery: 1248 },
-            "Vsett 8": { weight: 21.0, battery: 748 },
-            "Joyor S10S": { weight: 27.1, battery: 1080 },
-            "Pure Electric Advance": { weight: 16.2, battery: 345 },
-            "Navee N65": { weight: 23.5, battery: 597 },
+            "Xiaomi 4 Go": { weight: 13.7, battery: 165 }, "Xiaomi 4 Lite": { weight: 15.6, battery: 187 },
+            "Xiaomi 4 Lite (Gen 2)": { weight: 16.2, battery: 230 }, "Xiaomi 4": { weight: 17.2, battery: 275 },
+            "Xiaomi 4 Pro": { weight: 16.5, battery: 446 }, "Xiaomi 4 Pro (Gen 2)": { weight: 19.0, battery: 468 },
+            "Xiaomi 4 Pro Plus": { weight: 19.5, battery: 546 }, "Xiaomi 4 Ultra": { weight: 24.5, battery: 561.6 },
+            "Xiaomi 5": { weight: 20.1, battery: 477 }, "Xiaomi 5 Pro": { weight: 22.4, battery: 477 },
+            "Xiaomi 5 Plus": { weight: 26.6, battery: 477 }, "Xiaomi 6": { weight: 26.3, battery: 360 },
+            
+            // Segway / Ninebot 2022-2026
+            "Segway D18E": { weight: 14.8, battery: 184 }, "Segway D28E": { weight: 15.3, battery: 275 },
+            "Segway D38E": { weight: 16.3, battery: 367 }, "Segway F25E II": { weight: 15.3, battery: 275 }, 
+            "Segway F30E": { weight: 16.9, battery: 367 }, "Segway F40E": { weight: 17.1, battery: 367 },
+            "Segway F2": { weight: 17.2, battery: 367 }, "Segway F2 Plus": { weight: 17.7, battery: 460 },
+            "Segway F2 Pro": { weight: 18.5, battery: 460 }, "Segway Max G2": { weight: 24.3, battery: 551 },
+            "Segway E2": { weight: 14.2, battery: 220 }, "Segway E2 Plus": { weight: 14.4, battery: 220 },
+            "Segway E2 Pro": { weight: 18.8, battery: 275 }, "Segway P65E": { weight: 28.0, battery: 561 }, 
+            "Segway P100SE": { weight: 32.9, battery: 1086 }, "Segway GT1E": { weight: 47.6, battery: 1008 }, 
+            "Segway GT2P": { weight: 52.6, battery: 1512 }, "Segway ZT3 Pro": { weight: 29.7, battery: 597 },
+            
+            // Legacy/Duplicate Ninebot kept for retro-compatibility
+            "Ninebot F2 Pro": { weight: 18.5, battery: 460 }, "Ninebot Max G30E II": { weight: 19.1, battery: 551 },
+            "Ninebot Max G2": { weight: 24.3, battery: 551 }, "Ninebot ZT3 Pro E": { weight: 29.0, battery: 597 },
+            "Ninebot E3 Pro E": { weight: 19.5, battery: 400 }, 
+            
+            "Kukirin G2": { weight: 25.3, battery: 720 }, "Kukirin G2 Pro": { weight: 26.7, battery: 720 }, 
+            "Kukirin G2 Max": { weight: 31.0, battery: 998 }, "Kukirin G2 Master": { weight: 33.0, battery: 1081 }, 
+            "Kukirin G3 Pro": { weight: 39.6, battery: 1209 }, "Kukirin G4": { weight: 37.0, battery: 1200 }, 
+            "Kukirin M4 Pro": { weight: 22.5, battery: 864 }, "OOTD S10": { weight: 27.0, battery: 960 }, 
+            "OOTD D88": { weight: 46.0, battery: 2112 }, "Dualtron Togo": { weight: 22.0, battery: 720 }, 
+            "Dualtron Popular": { weight: 24.0, battery: 1200 }, "Teverun Fighter Mini": { weight: 29.5, battery: 1248 }, 
+            "Vsett 8": { weight: 21.0, battery: 748 }, "Joyor S10S": { weight: 27.1, battery: 1080 }, 
+            "Pure Electric Advance": { weight: 16.2, battery: 345 }, "Navee N65": { weight: 23.5, battery: 597 }, 
             "Evercross EV85F": { weight: 15.0, battery: 280 }
         };
         let currentScooter = JSON.parse(localStorage.getItem('currentScooter')) || { name: "Xiaomi 4 Ultra", weight: 24.5, battery: 561.6 };
 
         let map, userMarker, watchId = null;
         let isTracking = false, isNavigating = false, isRecalculating = false, userCoords = null, currentHeading = 0;
-        let isSatellite = true; // SATELLITE ACTIVÉ PAR DÉFAUT
+        let isSatellite = true; 
+        let isAutoCentering = true; 
+        let lastWeatherTime = 0; 
         
         let speedSize = 2, weatherSize = 1, statsSize = 1;
         let userWeight = parseFloat(localStorage.getItem('scooterWeight')) || 90;
-        
-        // Poids total dynamique
         const getTotalWeight = () => userWeight + currentScooter.weight;
         
         let totalDistanceCovered = 0, totalDPlus = 0, totalDMinus = 0, lastPos = null;
         let startNavDistance = 0, startNavDPlus = 0, startNavDMinus = 0;
         let totalWhConsumed = 0, startNavWh = 0; 
+        let maxSpeedValue = 0;
+        
         let traversedPath = []; 
         const SPEED_MPS = 25.0 / 3.6; 
         
@@ -260,13 +257,11 @@
             return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
         }
 
-        // --- DRAG & DROP SÉCURISÉ ---
         function makeDraggable(elmnt) {
             let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0, dragging = false;
             elmnt.onmousedown = dragMouseDown; elmnt.ontouchstart = dragMouseDown;
 
             function dragMouseDown(e) {
-                // Ignore le drag sur les menus déroulants, boutons et champs de texte
                 if(['INPUT', 'BUTTON', 'LI', 'SELECT', 'OPTION'].includes(e.target.tagName) || e.target.closest('#route-details') || e.target.closest('#suggestions')) return;
                 e = e || window.event;
                 if(e.type !== "touchstart") e.preventDefault();
@@ -298,7 +293,6 @@
             elmnt.isDragging = () => dragging;
         }
 
-        // --- SÉCURITÉ DE ROTATION DU TÉLÉPHONE ---
         window.addEventListener('orientationchange', () => {
             ['stats-bubble', 'weather-bubble', 'speed-widget', 'eta-widget', 'search-modal', 'scooter-modal'].forEach(id => {
                 const el = document.getElementById(id);
@@ -309,12 +303,18 @@
         function initMap() {
             map = new maplibregl.Map({
                 container: 'map', style: 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-                center: [2.2, 46.2], zoom: 6, pitch: 0, attributionControl: false
+                center: [2.2, 46.2], zoom: 6, pitch: 0, attributionControl: false, maxZoom: 17.8
+            });
+
+            map.on('dragstart', (e) => {
+                if(e.originalEvent && isAutoCentering) {
+                    isAutoCentering = false;
+                    document.getElementById('gps-btn').classList.remove('active');
+                }
             });
 
             map.on('load', () => {
                 map.addSource('satellite', { type: 'raster', tiles: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256 });
-                // SATELLITE VISIBLE PAR DÉFAUT
                 map.addLayer({ id: 'satellite-layer', type: 'raster', source: 'satellite', layout: { visibility: 'visible' } });
 
                 map.addSource('route', { type: 'geojson', data: { type: 'Feature', geometry: { type: 'LineString', coordinates: [] } } });
@@ -326,14 +326,11 @@
 
                 startTracking();
             });
-            document.getElementById('address-input').addEventListener('focus', showHistory);
             
-            ['stats-bubble', 'weather-bubble', 'speed-widget', 'eta-widget', 'search-modal', 'scooter-modal'].forEach(id => {
-                makeDraggable(document.getElementById(id));
-            });
+            document.getElementById('address-input').addEventListener('focus', showHistory);
+            ['stats-bubble', 'weather-bubble', 'speed-widget', 'eta-widget', 'search-modal', 'scooter-modal'].forEach(id => makeDraggable(document.getElementById(id)));
         }
 
-        // --- GESTION DES MODALS & BOUTONS ---
         function toggleSatellite() {
             isSatellite = !isSatellite;
             if(map.getLayer('satellite-layer')) map.setLayoutProperty('satellite-layer', 'visibility', isSatellite ? 'visible' : 'none');
@@ -341,20 +338,9 @@
 
         async function requestWakeLock() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (err) {} }
         document.addEventListener('visibilitychange', async () => { if (wakeLock !== null && document.visibilityState === 'visible') requestWakeLock(); });
+        function toggleFullScreen() { if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => {}); requestWakeLock(); } else { document.exitFullscreen(); if(wakeLock) { wakeLock.release(); wakeLock = null; } } }
+        function setWeight() { const w = prompt("Votre poids + équipement (kg) :", userWeight); if (w && !isNaN(w)) { userWeight = parseFloat(w); localStorage.setItem('scooterWeight', userWeight); } }
 
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) { document.documentElement.requestFullscreen().catch(err => {}); requestWakeLock(); } 
-            else { document.exitFullscreen(); if(wakeLock) { wakeLock.release(); wakeLock = null; } }
-        }
-
-        function setWeight() {
-            const w = prompt("Votre poids + équipement (kg) :", userWeight);
-            if (w && !isNaN(w)) {
-                userWeight = parseFloat(w); localStorage.setItem('scooterWeight', userWeight);
-            }
-        }
-
-        // MENU TROTTINETTE DÉROULANT
         function openScooterModal() {
             const select = document.getElementById('scooter-select');
             select.innerHTML = '';
@@ -366,12 +352,19 @@
             });
             document.getElementById('scooter-modal').style.display = 'flex';
         }
+        
         function closeScooterModal() { document.getElementById('scooter-modal').style.display = 'none'; }
+        
         function saveScooter() {
             const selection = document.getElementById('scooter-select').value;
             if(SCOOTER_DB[selection]) {
                 currentScooter = { name: selection, ...SCOOTER_DB[selection] };
                 localStorage.setItem('currentScooter', JSON.stringify(currentScooter));
+                
+                let displayBatt = isNavigating ? ((totalWhConsumed - startNavWh)/currentScooter.battery)*100 : (totalWhConsumed/currentScooter.battery)*100;
+                document.getElementById('batt-val').innerText = displayBatt.toFixed(1);
+                
+                if (isNavigating && userCoords) recalculateRoute(userCoords);
             }
             closeScooterModal();
         }
@@ -380,7 +373,6 @@
         function resizeWeather() { if(this.isDragging && this.isDragging()) return; weatherSize = weatherSize === 3 ? 1 : weatherSize + 1; this.className = `hud-bubble weather-sz-${weatherSize} interactive`; }
         function resizeStats() { if(this.isDragging && this.isDragging()) return; statsSize = statsSize === 3 ? 1 : statsSize + 1; this.className = `hud-bubble stats-sz-${statsSize} interactive`; }
 
-        // --- MÉTÉO ---
         async function fetchWeather(lat, lon) {
             try {
                 const data = await (await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weather_code,wind_speed_10m&timezone=auto&forecast_days=2`)).json();
@@ -397,7 +389,6 @@
             } catch(e) {}
         }
 
-        // --- RECHERCHE ET HISTORIQUE ---
         let searchHistory = JSON.parse(localStorage.getItem('scooterHist') || '[]');
         function saveToHistory(place) {
             const name = place.display_name; const exists = searchHistory.findIndex(p => p.name === name);
@@ -450,7 +441,6 @@
             document.getElementById('address-input').value = place.display_name.split(',')[0]; 
             document.getElementById('suggestions').innerHTML = '<li style="justify-content:center; color:var(--accent);">Calcul des itinéraires...</li>';
             saveToHistory(place);
-
             routes = [];
 
             const fetchRoute = async (profile, label) => {
@@ -465,6 +455,11 @@
                     for (let i=0; i<coords.length; i+=stepIdx) { lats.push(coords[i][1].toFixed(5)); lons.push(coords[i][0].toFixed(5)); sampled.push(coords[i]); }
                     
                     let whTotal = 0, dPlus = 0, dMinus = 0, dSampled = 0;
+                    
+                    let windKmh = parseInt(document.getElementById('wind-val').innerText) || 0;
+                    let windMps = windKmh / 3.6;
+                    let effectiveV = SPEED_MPS + windMps * 0.3; // Estimation du vent moyen
+                    
                     try {
                         const elev = await (await fetch(`https://api.open-meteo.com/v1/elevation?latitude=${lats.join(',')}&longitude=${lons.join(',')}`)).json();
                         for (let i=0; i<sampled.length-1; i++) {
@@ -475,9 +470,9 @@
                             if(eDiff > 0) dPlus += eDiff; else dMinus += Math.abs(eDiff);
                             
                             const slope = eDiff / d;
-                            let p = (0.015*getTotalWeight()*9.81 + 0.5*1.2*0.45*Math.pow(SPEED_MPS,2) + getTotalWeight()*9.81*slope) * SPEED_MPS;
-                            if(p<0) p=0;
-                            whTotal += ((p/0.75)*(d/SPEED_MPS))/3600;
+                            let force = 0.015*getTotalWeight()*9.81 + 0.5*1.2*0.45*Math.pow(effectiveV, 2) + getTotalWeight()*9.81*slope;
+                            if(force < 0) force = 0;
+                            whTotal += (force * d / 0.75) / 3600;
                         }
                     } catch(e) {} 
 
@@ -528,7 +523,7 @@
 
         function startNavigation() {
             closeSearch(); requestWakeLock();
-            isNavigating = true; currentStepIndex = 0;
+            isNavigating = true; isAutoCentering = true; currentStepIndex = 0;
             
             startNavDistance = totalDistanceCovered; startNavDPlus = totalDPlus; startNavDMinus = totalDMinus;
             startNavWh = totalWhConsumed; 
@@ -543,9 +538,9 @@
             document.getElementById('dminus-val').innerText = "0";
             document.getElementById('batt-val').innerText = "0.0";
             
-            document.getElementById('batt-hud').style.display = 'block';
             document.getElementById('nav-header').style.display = 'flex';
             document.getElementById('eta-widget').style.display = 'flex';
+            document.getElementById('gps-btn').classList.add('active');
             
             if(userCoords) {
                 map.flyTo({ center: [userCoords.lon, userCoords.lat], bearing: currentHeading, pitch: 60, zoom: 17.5, duration: 1500 });
@@ -568,22 +563,19 @@
                     activeRoute.coords = rt.geometry.coordinates; activeRoute.steps = rt.legs[0].steps; currentStepIndex = 0;
                     
                     const distDone = totalDistanceCovered - startNavDistance;
-                    const dPlusDone = totalDPlus - startNavDPlus;
-                    const dMinusDone = totalDMinus - startNavDMinus;
                     const battDone = ((totalWhConsumed - startNavWh) / currentScooter.battery) * 100;
-                    
-                    const oldRemainingDist = Math.max(0.1, activeRoute.dist - distDone);
                     const realDist = rt.distance / 1000;
-                    const ratio = realDist / oldRemainingDist;
+                    
+                    let windKmh = parseInt(document.getElementById('wind-val').innerText) || 0;
+                    let windMps = windKmh / 3.6;
+                    let effectiveV = SPEED_MPS + windMps * 0.3;
+                    let force_flat = 0.015*getTotalWeight()*9.81 + 0.5*1.2*0.45*Math.pow(effectiveV, 2);
+                    let remainingWh = (force_flat * (realDist * 1000) / 0.75) / 3600;
                     
                     activeRoute.dist = distDone + realDist; 
-                    activeRoute.dPlus = dPlusDone + (activeRoute.dPlus - dPlusDone) * ratio; 
-                    activeRoute.dMinus = dMinusDone + (activeRoute.dMinus - dMinusDone) * ratio;
-                    activeRoute.batt = battDone + ((activeRoute.batt - battDone) * ratio);
+                    activeRoute.batt = battDone + (remainingWh / currentScooter.battery) * 100;
                     
                     document.getElementById('dist-total').innerText = `/ ${activeRoute.dist.toFixed(1)} km`;
-                    document.getElementById('dplus-total').innerText = `/ ${Math.round(activeRoute.dPlus)} m`;
-                    document.getElementById('dminus-total').innerText = `/ ${Math.round(activeRoute.dMinus)} m`;
                     document.getElementById('batt-total').innerText = `/ ${activeRoute.batt.toFixed(1)} %`;
                     
                     if(map.getSource('route')) map.getSource('route').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: activeRoute.coords } });
@@ -650,8 +642,19 @@
                 const lat = pos.coords.latitude, lon = pos.coords.longitude, alt = pos.coords.altitude;
                 userCoords = { lat, lon, alt };
 
+                if (Date.now() - lastWeatherTime > 900000) {
+                    fetchWeather(lat, lon);
+                    lastWeatherTime = Date.now();
+                }
+
                 let speed = pos.coords.speed;
-                document.getElementById('speed-val').innerText = (speed && speed > 0.5) ? Math.round(speed * 3.6) : 0;
+                let currentSpeedKmh = (speed && speed > 0.5) ? Math.round(speed * 3.6) : 0;
+                document.getElementById('speed-val').innerText = currentSpeedKmh;
+                
+                if (currentSpeedKmh > maxSpeedValue) {
+                    maxSpeedValue = currentSpeedKmh;
+                    document.getElementById('max-speed-val').innerText = 'MAX: ' + maxSpeedValue;
+                }
                 
                 if(pos.coords.heading !== null && speed > 0.8) currentHeading = pos.coords.heading; 
 
@@ -663,23 +666,21 @@
                         .setLngLat([lon, lat]).addTo(map);
                     
                     map.flyTo({ center: [lon, lat], pitch: 60, zoom: 17.5, duration: 1500 }); 
-                    fetchWeather(lat, lon); requestWakeLock();
+                    requestWakeLock();
                 } else {
                     userMarker.setLngLat([lon, lat]);
                     userMarker.setRotation(currentHeading);
                 }
 
-                if(isNavigating) {
-                    map.easeTo({ center: [lon, lat], bearing: currentHeading, pitch: 60, zoom: 17.5, duration: 1000 });
-                } else if(userMarker) {
-                    map.easeTo({ center: [lon, lat], bearing: currentHeading, pitch: 60, zoom: 17.5, duration: 1000 }); 
+                if(isAutoCentering) {
+                    map.easeTo({ center: [lon, lat], bearing: currentHeading, duration: 1000 });
                 }
 
+                // PHYSIQUE & BATTERIE (Dynamique + Vent)
                 if (lastPos) {
                     const d = calcDist(lastPos, userCoords) / 1000;
                     if (d > 0.002) {
                         totalDistanceCovered += d;
-                        
                         traversedPath.push([lon, lat]);
                         if(map.getSource('path')) map.getSource('path').setData({ type: 'Feature', geometry: { type: 'LineString', coordinates: traversedPath } });
                         
@@ -693,9 +694,14 @@
                             }
                         }
 
-                        let p = (0.015*getTotalWeight()*9.81 + 0.5*1.2*0.45*Math.pow(SPEED_MPS,2) + getTotalWeight()*9.81*currentSlope) * SPEED_MPS;
-                        if(p < 0) p = 0;
-                        totalWhConsumed += ((p/0.75)*(d/SPEED_MPS))/3600;
+                        let windKmh = parseInt(document.getElementById('wind-val').innerText) || 0;
+                        let windMps = windKmh / 3.6;
+                        let actualV = (speed && speed > 0.5) ? speed : SPEED_MPS;
+                        let effectiveV = actualV + (windMps * 0.3); // Impact moyen du vent de face (30%)
+
+                        let force = 0.015*getTotalWeight()*9.81 + 0.5*1.2*0.45*Math.pow(effectiveV, 2) + getTotalWeight()*9.81*currentSlope;
+                        if(force < 0) force = 0;
+                        totalWhConsumed += (force * (d * 1000) / 0.75) / 3600;
 
                         let displayDist = isNavigating ? (totalDistanceCovered - startNavDistance) : totalDistanceCovered;
                         let displayDPlus = isNavigating ? (totalDPlus - startNavDPlus) : totalDPlus;
@@ -710,7 +716,6 @@
                         if(isNavigating) updateNavigationHUD(userCoords);
                     }
                 }
-                
                 if(!lastPos) { lastPos = {lat, lon, alt}; traversedPath.push([lon, lat]); }
                 else { lastPos.lat = lat; lastPos.lon = lon; }
                 
@@ -718,11 +723,22 @@
         }
 
         function toggleTracking() {
-            if (!isTracking) startTracking();
-            else {
-                navigator.geolocation.clearWatch(watchId);
-                document.getElementById('gps-btn').classList.remove('active');
-                isTracking = false;
+            if (!isTracking) {
+                isAutoCentering = true;
+                startTracking();
+            } else {
+                if (!isAutoCentering) {
+                    isAutoCentering = true;
+                    document.getElementById('gps-btn').classList.add('active');
+                    if (userCoords) {
+                        map.flyTo({ center: [userCoords.lon, userCoords.lat], bearing: currentHeading, pitch: 60, zoom: 17.5, duration: 1000 });
+                    }
+                } else {
+                    navigator.geolocation.clearWatch(watchId);
+                    document.getElementById('gps-btn').classList.remove('active');
+                    isTracking = false;
+                    isAutoCentering = false;
+                }
             }
         }
 
